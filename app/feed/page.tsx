@@ -6,33 +6,33 @@ import { supabase } from '../../src/lib/supabaseClient';
 import Header from '../../src/components/layout/Hearder';
 import BottomNav from '../../src/components/layout/BottomNav';
 import SidebarMenu from '../../src/components/layout/SidebarMenu';
-import { Heart, MessageCircle, Share2, Plus, X } from 'lucide-react';
+import { X } from 'lucide-react';
 
 interface Post {
   id: string;
-  titulo: string;
-  conteudo: string;
-  autor: string;
-  pais: string;
-  avatar: string;
-  imagem: string | null;
-  curtidas: number;
-  descurtidas: number;
-  comentarios_count: number;
-  compartilhamentos: number;
-  criada_em: string;
+  title: string;
+  content: string;
+  author: string;
+  country: string;
+  avatar_url: string;
+  image_url: string | null;
+  likes: number;
+  dislikes: number;
+  comments_count: number;
+  shares: number;
+  created_at: string;
 }
 
-interface Comentario {
+interface Comment {
   id: string;
   post_id: string;
-  autor: string;
-  pais: string;
-  avatar: string;
-  conteudo: string;
-  curtidas: number;
-  descurtidas: number;
-  criada_em: string;
+  author: string;
+  country: string;
+  avatar_url: string;
+  content: string;
+  likes: number;
+  dislikes: number;
+  created_at: string;
 }
 
 export default function FeedPage() {
@@ -42,10 +42,10 @@ export default function FeedPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
-  const [comments, setComments] = useState<Comentario[]>([]);
-  const [novoComento, setNovoComento] = useState('');
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState('');
   const [showComposer, setShowComposer] = useState(false);
-  const [novoPost, setNovoPost] = useState({ titulo: '', conteudo: '' });
+  const [newPost, setNewPost] = useState({ title: '', content: '' });
 
   useEffect(() => {
     const loadData = async () => {
@@ -58,11 +58,11 @@ export default function FeedPage() {
 
         setUser(authData.session.user);
 
-        // Buscar posts (ordenados por votos)
+        // Fetch posts (ordered by likes)
         const { data: postsData } = await supabase
           .from('posts')
           .select('*')
-          .order('curtidas', { ascending: false })
+          .order('likes', { ascending: false })
           .limit(50);
 
         if (postsData) {
@@ -71,7 +71,7 @@ export default function FeedPage() {
 
         setLoading(false);
       } catch (err) {
-        console.error('Erro:', err);
+        console.error('Error:', err);
         setLoading(false);
       }
     };
@@ -82,12 +82,12 @@ export default function FeedPage() {
   const handleSelectPost = async (post: Post) => {
     setSelectedPost(post);
 
-    // Buscar comentários do post
+    // Fetch comments for the post
     const { data: commentsData } = await supabase
-      .from('comentarios')
+      .from('comments')
       .select('*')
       .eq('post_id', post.id)
-      .order('curtidas', { ascending: false });
+      .order('likes', { ascending: false });
 
     if (commentsData) {
       setComments(commentsData as any);
@@ -101,21 +101,21 @@ export default function FeedPage() {
 
       const { error } = await supabase
         .from('posts')
-        .update({ curtidas: post.curtidas + 1 })
+        .update({ likes: post.likes + 1 })
         .eq('id', postId);
 
       if (!error) {
         setPosts(
           posts.map((p) =>
-            p.id === postId ? { ...p, curtidas: p.curtidas + 1 } : p
+            p.id === postId ? { ...p, likes: p.likes + 1 } : p
           )
         );
         if (selectedPost?.id === postId) {
-          setSelectedPost({ ...selectedPost, curtidas: selectedPost.curtidas + 1 });
+          setSelectedPost({ ...selectedPost, likes: selectedPost.likes + 1 });
         }
       }
     } catch (err) {
-      console.error('Erro ao curtir:', err);
+      console.error('Error liking post:', err);
     }
   };
 
@@ -126,98 +126,99 @@ export default function FeedPage() {
 
       const { error } = await supabase
         .from('posts')
-        .update({ descurtidas: post.descurtidas + 1 })
+        .update({ dislikes: post.dislikes + 1 })
         .eq('id', postId);
 
       if (!error) {
         setPosts(
           posts.map((p) =>
-            p.id === postId ? { ...p, descurtidas: p.descurtidas + 1 } : p
+            p.id === postId ? { ...p, dislikes: p.dislikes + 1 } : p
           )
         );
         if (selectedPost?.id === postId) {
           setSelectedPost({
             ...selectedPost,
-            descurtidas: selectedPost.descurtidas + 1,
+            dislikes: selectedPost.dislikes + 1,
           });
         }
       }
     } catch (err) {
-      console.error('Erro ao descurtir:', err);
+      console.error('Error disliking post:', err);
     }
   };
 
   const handlePostComment = async () => {
-    if (!novoComento.trim() || !selectedPost) return;
+    if (!newComment.trim() || !selectedPost) return;
 
     try {
       const { data: authData } = await supabase.auth.getSession();
       const { data: countryData } = await supabase
-        .from('politica')
-        .select('nome_pais')
+        .from('politics')
+        .select('country_name')
         .eq('user_id', authData?.session?.user.id)
         .single();
 
-      const { error } = await supabase.from('comentarios').insert({
+      const { error } = await supabase.from('comments').insert({
         post_id: selectedPost.id,
-        autor: authData?.session?.user.user_metadata?.username || 'Anônimo',
-        pais: countryData?.nome_pais || 'Desconhecido',
-        avatar: 'https://via.placeholder.com/40',
-        conteudo: novoComento,
-        curtidas: 0,
-        descurtidas: 0,
+        author: authData?.session?.user.user_metadata?.username || 'Anonymous',
+        country: countryData?.country_name || 'Unknown',
+        avatar_url: 'https://via.placeholder.com/40',
+        content: newComment,
+        likes: 0,
+        dislikes: 0,
       });
 
       if (!error) {
-        setNovoComento('');
-        // Recarregar comentários
+        setNewComment('');
+        // Reload comments
         const { data: commentsData } = await supabase
-          .from('comentarios')
+          .from('comments')
           .select('*')
           .eq('post_id', selectedPost.id)
-          .order('curtidas', { ascending: false });
+          .order('likes', { ascending: false });
 
         if (commentsData) {
           setComments(commentsData as any);
         }
       }
     } catch (err) {
-      console.error('Erro ao comentar:', err);
+      console.error('Error posting comment:', err);
     }
   };
 
   const handleCreatePost = async () => {
-    if (!novoPost.titulo.trim() || !novoPost.conteudo.trim()) return;
+    if (!newPost.title.trim() || !newPost.content.trim()) return;
 
     try {
       const { data: authData } = await supabase.auth.getSession();
       const { data: countryData } = await supabase
-        .from('politica')
-        .select('nome_pais, emoji_flag')
+        .from('politics')
+        .select('country_name, flag_emoji')
         .eq('user_id', authData?.session?.user.id)
         .single();
 
       const { error } = await supabase.from('posts').insert({
-        titulo: novoPost.titulo,
-        conteudo: novoPost.conteudo,
-        autor: authData?.session?.user.user_metadata?.username || 'Anônimo',
-        pais: countryData?.nome_pais || 'Desconhecido',
-        avatar: 'https://via.placeholder.com/40',
-        curtidas: 0,
-        descurtidas: 0,
-        comentarios_count: 0,
-        compartilhamentos: 0,
+        title: newPost.title,
+        content: newPost.content,
+        author: authData?.session?.user.user_metadata?.username || 'Anonymous',
+        country: countryData?.country_name || 'Unknown',
+        avatar_url: 'https://via.placeholder.com/40',
+        image_url: null,
+        likes: 0,
+        dislikes: 0,
+        comments_count: 0,
+        shares: 0,
       });
 
       if (!error) {
-        setNovoPost({ titulo: '', conteudo: '' });
+        setNewPost({ title: '', content: '' });
         setShowComposer(false);
 
-        // Recarregar posts
+        // Reload posts
         const { data: postsData } = await supabase
           .from('posts')
           .select('*')
-          .order('curtidas', { ascending: false })
+          .order('likes', { ascending: false })
           .limit(50);
 
         if (postsData) {
@@ -225,7 +226,7 @@ export default function FeedPage() {
         }
       }
     } catch (err) {
-      console.error('Erro ao criar post:', err);
+      console.error('Error creating post:', err);
     }
   };
 
@@ -246,13 +247,13 @@ export default function FeedPage() {
 
         <main className="flex-1 w-full overflow-x-hidden">
           {!selectedPost ? (
-            // LISTA DE POSTS
+            // POSTS LIST
             <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold">ARTIGOS</h2>
+                <h2 className="text-2xl font-bold">ARTICLES</h2>
                 <div className="text-xs text-gray-400">
-                  TODOS
+                  ALL
                 </div>
               </div>
 
@@ -267,15 +268,15 @@ export default function FeedPage() {
                     <div className="flex gap-3">
                       {/* Avatar */}
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex-shrink-0 flex items-center justify-center text-xs font-bold">
-                        {post.autor.charAt(0)}
+                        {post.author.charAt(0)}
                       </div>
 
-                      {/* Conteúdo */}
+                      {/* Content */}
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-white">{post.titulo}</p>
-                        <p className="text-xs text-purple-400">{post.autor}</p>
+                        <p className="font-bold text-white">{post.title}</p>
+                        <p className="text-xs text-purple-400">{post.author}</p>
                         <p className="text-xs text-gray-500 mt-1">
-                          {new Date(post.criada_em).toLocaleDateString('pt-BR')}
+                          {new Date(post.created_at).toLocaleDateString('pt-BR')}
                         </p>
                       </div>
 
@@ -283,14 +284,14 @@ export default function FeedPage() {
                       <div className="text-right flex-shrink-0">
                         <div className="flex gap-2 text-xs">
                           <span className="text-green-400 font-bold">
-                            👍 +{post.curtidas}
+                            👍 +{post.likes}
                           </span>
                           <span className="text-red-400 font-bold">
-                            👎 -{post.descurtidas}
+                            👎 -{post.dislikes}
                           </span>
                         </div>
                         <p className="text-xs text-gray-500 mt-1">
-                          💬 {post.comentarios_count}
+                          💬 {post.comments_count}
                         </p>
                       </div>
                     </div>
@@ -299,69 +300,67 @@ export default function FeedPage() {
               </div>
             </div>
           ) : (
-            // DETALHE DO POST
+            // POST DETAIL
             <div className="max-w-2xl mx-auto px-4 py-6">
               {/* Header */}
               <button
                 onClick={() => setSelectedPost(null)}
                 className="mb-4 text-purple-400 hover:text-purple-300 flex items-center gap-2"
               >
-                ← Voltar
+                ← Back
               </button>
 
-              {/* Post Completo */}
+              {/* Post Full */}
               <div className="bg-gray-800/50 border border-gray-700 rounded-lg overflow-hidden">
-                {/* Imagem do post */}
-                {selectedPost.imagem && (
+                {selectedPost.image_url && (
                   <img
-                    src={selectedPost.imagem}
-                    alt={selectedPost.titulo}
+                    src={selectedPost.image_url}
+                    alt={selectedPost.title}
                     className="w-full h-64 object-cover"
                   />
                 )}
 
-                {/* Conteúdo */}
                 <div className="p-6 space-y-4">
                   <div className="flex gap-3 items-start">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex-shrink-0 flex items-center justify-center text-xs font-bold">
-                      {selectedPost.autor.charAt(0)}
+                      {selectedPost.author.charAt(0)}
                     </div>
                     <div>
-                      <p className="font-bold">{selectedPost.autor}</p>
+                      <p className="font-bold">{selectedPost.author}</p>
                       <p className="text-xs text-gray-500">
-                        {new Date(selectedPost.criada_em).toLocaleDateString('pt-BR')}
+                        {new Date(selectedPost.created_at).toLocaleDateString('pt-BR')}
                       </p>
                     </div>
                   </div>
 
-                  <h1 className="text-2xl font-bold">{selectedPost.titulo}</h1>
-                  <p className="text-gray-300">{selectedPost.conteudo}</p>
+                  <h1 className="text-2xl font-bold">{selectedPost.title}</h1>
+                  <p className="text-gray-300">{selectedPost.content}</p>
 
-                  {/* Votação */}
+                  {/* Voting */}
                   <div className="flex gap-4 pt-4 border-t border-gray-700">
                     <button
                       onClick={() => handleLikePost(selectedPost.id)}
                       className="flex items-center gap-2 text-green-400 hover:text-green-300"
                     >
-                      👍 +{selectedPost.curtidas}
+                      👍 +{selectedPost.likes}
                     </button>
                     <button
                       onClick={() => handleDislikePost(selectedPost.id)}
                       className="flex items-center gap-2 text-red-400 hover:text-red-300"
                     >
-                      👎 -{selectedPost.descurtidas}
+                      👎 -{selectedPost.dislikes}
                     </button>
                     <button className="flex items-center gap-2 text-gray-400 hover:text-gray-300">
-                      💬 {selectedPost.comentarios_count}
+                      💬 {selectedPost.comments_count}
                     </button>
                     <button className="flex items-center gap-2 text-gray-400 hover:text-gray-300">
-                      ↗️ {selectedPost.compartilhamentos}
+                      ↗️ {selectedPost.shares}
                     </button>
                   </div>
 
-                  {/* Comentários */}
+                  {/* Comments */}
                   <div className="pt-6 border-t border-gray-700 space-y-4">
-                    <h3 className="font-bold">COMENTÁRIOS ({comments.length})</h3>
+                    <h3 className="font-bold">COMMENTS ({comments.length})</h3>
 
                     {comments.map((comment) => (
                       <div
@@ -370,43 +369,43 @@ export default function FeedPage() {
                       >
                         <div className="flex gap-2 items-start">
                           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex-shrink-0 flex items-center justify-center text-xs font-bold">
-                            {comment.autor.charAt(0)}
+                            {comment.author.charAt(0)}
                           </div>
                           <div className="flex-1">
-                            <p className="text-sm font-bold">{comment.autor}</p>
+                            <p className="text-sm font-bold">{comment.author}</p>
                             <p className="text-xs text-gray-400">
-                              {new Date(comment.criada_em).toLocaleDateString('pt-BR')}
+                              {new Date(comment.created_at).toLocaleDateString('pt-BR')}
                             </p>
                           </div>
                         </div>
 
-                        <p className="text-sm text-gray-300">{comment.conteudo}</p>
+                        <p className="text-sm text-gray-300">{comment.content}</p>
 
                         <div className="flex gap-3 text-xs">
                           <button className="text-green-400 hover:text-green-300">
-                            👍 +{comment.curtidas}
+                            👍 +{comment.likes}
                           </button>
                           <button className="text-red-400 hover:text-red-300">
-                            👎 -{comment.descurtidas}
+                            👎 -{comment.dislikes}
                           </button>
                         </div>
                       </div>
                     ))}
 
-                    {/* Input Comentário */}
+                    {/* Comment Input */}
                     <div className="flex gap-2 pt-4 border-t border-gray-700">
                       <input
                         type="text"
-                        value={novoComento}
-                        onChange={(e) => setNovoComento(e.target.value)}
-                        placeholder="Deixe um comentário..."
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        placeholder="Leave a comment..."
                         className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
                       />
                       <button
                         onClick={handlePostComment}
                         className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-bold text-sm"
                       >
-                        Enviar
+                        Send
                       </button>
                     </div>
                   </div>
@@ -417,22 +416,22 @@ export default function FeedPage() {
         </main>
       </div>
 
-      {/* Botão Flutuante - Novo Post */}
+      {/* Floating Button - New Post */}
       {!showComposer && (
         <button
           onClick={() => setShowComposer(true)}
           className="fixed bottom-24 right-6 w-14 h-14 bg-green-600 hover:bg-green-700 rounded-full flex items-center justify-center shadow-lg"
         >
-          <Plus className="w-6 h-6 text-white" />
+          ➕
         </button>
       )}
 
-      {/* Modal - Novo Post */}
+      {/* Modal - New Post */}
       {showComposer && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-800 rounded-lg border border-gray-700 max-w-md w-full p-6 space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-bold">Novo Artigo</h3>
+              <h3 className="text-lg font-bold">New Article</h3>
               <button
                 onClick={() => setShowComposer(false)}
                 className="text-gray-400 hover:text-gray-300"
@@ -443,16 +442,16 @@ export default function FeedPage() {
 
             <input
               type="text"
-              value={novoPost.titulo}
-              onChange={(e) => setNovoPost({ ...novoPost, titulo: e.target.value })}
-              placeholder="Título..."
+              value={newPost.title}
+              onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
+              placeholder="Title..."
               className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
             />
 
             <textarea
-              value={novoPost.conteudo}
-              onChange={(e) => setNovoPost({ ...novoPost, conteudo: e.target.value })}
-              placeholder="Conteúdo..."
+              value={newPost.content}
+              onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
+              placeholder="Content..."
               className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 h-32 resize-none"
             />
 
@@ -461,13 +460,13 @@ export default function FeedPage() {
                 onClick={() => setShowComposer(false)}
                 className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded"
               >
-                Cancelar
+                Cancel
               </button>
               <button
                 onClick={handleCreatePost}
                 className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-bold"
               >
-                Publicar
+                Publish
               </button>
             </div>
           </div>
