@@ -9,6 +9,7 @@ import {
   ShoppingCart,
   X,
 } from 'lucide-react';
+import { supabase } from '../../lib/supabaseClient';
 
 interface SidebarMenuProps {
   isOpen: boolean;
@@ -93,7 +94,10 @@ export default function SidebarMenu({ isOpen, onClose }: SidebarMenuProps) {
 
         <div className="px-2 pb-4">
           <button
-            onClick={() => console.log('Logout')}
+            onClick={async () => {
+              await supabase.auth.signOut();
+              window.location.href = '/';
+            }}
             className="w-full py-2 px-4 bg-red-600/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 font-semibold text-sm rounded-lg border border-red-500/20 transition-colors"
           >
             Sair do Jogo
