@@ -68,7 +68,7 @@ export default function GlobalChat() {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [messages.length]);
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !countryName) return;
