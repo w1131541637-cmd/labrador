@@ -84,14 +84,6 @@ export default function SidebarMenu({ isOpen, onClose }: SidebarMenuProps) {
           <div className="h-px bg-purple-500/10"></div>
         </div>
 
-        <div className="px-4 pb-4">
-          <div className="bg-gradient-to-r from-purple-900/30 to-transparent border border-purple-500/20 rounded-lg p-3">
-            <p className="text-xs text-gray-500 mb-2">USUÁRIO LOGADO</p>
-            <p className="text-white font-semibold text-sm">Patrick Silva</p>
-            <p className="text-purple-400 text-xs mt-1">🇧🇷 Brasil</p>
-          </div>
-        </div>
-
         <div className="px-2 pb-4">
           <button
             onClick={async () => {

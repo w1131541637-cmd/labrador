@@ -1,169 +1,218 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Send, SmilePlus, Image as ImageIcon, Paperclip } from 'lucide-react';
-
-interface Message {
-  id: string;
-  user: string;
-  country: string;
-  message: string;
-  timestamp: string;
-  type: 'text' | 'image' | 'emoji' | 'gif';
-  avatar?: string;
-}
+import { useState, useEffect, useRef } from 'react';
+import { supabase } from '../../../src/lib/supabaseClient';
 
 export default function GlobalChat() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      user: 'Patrick',
-      country: 'Brasil',
-      message: 'Olá galera! 🇧🇷',
-      timestamp: '14:32',
-      type: 'text',
-    },
-    {
-      id: '2',
-      user: 'João',
-      country: 'Argentina',
-      message: 'E aí Brasil! Tudo bem? 🇦🇷',
-      timestamp: '14:33',
-      type: 'text',
-    },
-    {
-      id: '3',
-      user: 'Maria',
-      country: 'Portugal',
-      message: 'Alguém quer fazer aliança? 🤝',
-      timestamp: '14:34',
-      type: 'text',
-    },
-  ]);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [countryName, setCountryName] = useState('');
+  const [flagEmoji, setFlagEmoji] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const [input, setInput] = useState('');
-  const [showEmojis, setShowEmojis] = useState(false);
-  const chatEndRef = useRef<HTMLDivElement>(null);
-
-  const EMOJIS = [
-    '😀', '😂', '😍', '🥰', '😎', '🤔', '😢', '😡',
-    '🇧🇷', '🇦🇷', '🇺🇸', '🇲🇽', '🇨🇳', '🇮🇳', '🇷🇺', '🇫🇷',
-    '⚔️', '🤝', '💰', '🏆', '💎', '🔥', '✨', '👑',
-  ];
-
+  // 1. Carregar o país do usuário logado
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    const getUserCountry = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: countryData } = await supabase
+          .from('coutries_politics')
+          .select('country_name, flag_emoji')
+          .eq('user_id', user.id)
+          .single();
 
-  const handleSendMessage = () => {
-    if (input.trim()) {
-      const newMessage: Message = {
-        id: Date.now().toString(),
-        user: 'Você',
-        country: 'Brasil',
-        message: input,
-        timestamp: new Date().toLocaleTimeString('pt-BR', {
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-        type: 'text',
-      };
+        if (countryData) {
+          setCountryName(countryData.country_name);
+          setFlagEmoji(countryData.flag_emoji || '🌍');
+        }
+      }
+    };
+    getUserCountry();
+  }, []);
 
-      setMessages([...messages, newMessage]);
-      setInput('');
-      setShowEmojis(false);
+  // 2. Carregar mensagens do banco
+  useEffect(() => {
+    const loadMessages = async () => {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .order('created_at', { ascending: true })
+        .limit(50);
+
+      if (!error && data) {
+        setMessages(data);
+        if (scrollRef.current) {
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+      }
+    };
+    loadMessages();
+
+    // 3. Inscrever para novas mensagens em tempo real
+    const subscription = supabase
+      .channel('chat_messages')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'chat_messages'
+      }, (payload) => {
+        setMessages((prev) => [...prev, payload.new]);
+        setTimeout(() => {
+          if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+          }
+        }, 100);
+      })
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // 4. Enviar mensagem de texto
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !countryName) return;
+
+    setLoading(true);
+    await supabase
+      .from('chat_messages')
+      .insert({
+        country_name: countryName,
+        flag_emoji: flagEmoji,
+        message: newMessage.trim(),
+        media_type: null,
+        media_url: null,
+      });
+
+    setNewMessage('');
+    setLoading(false);
+  };
+
+  // 5. Upload de arquivo
+  const handleFileUpload = async (file: File) => {
+    if (!file || !countryName) return;
+    setUploading(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `${countryName}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('chat_media')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        console.error('Erro no upload:', uploadError);
+        return;
+      }
+
+      const { data: urlData } = await supabase.storage
+        .from('chat_media')
+        .getPublicUrl(filePath);
+
+      let mediaType = 'image';
+      if (file.type.startsWith('video/')) mediaType = 'video';
+      else if (file.type.startsWith('audio/')) mediaType = 'audio';
+      else if (file.type === 'image/gif') mediaType = 'gif';
+
+      await supabase
+        .from('chat_messages')
+        .insert({
+          country_name: countryName,
+          flag_emoji: flagEmoji,
+          message: null,
+          media_type: mediaType,
+          media_url: urlData.publicUrl,
+        });
+
+    } catch (error) {
+      console.error('Erro ao enviar mídia:', error);
+    } finally {
+      setUploading(false);
     }
   };
 
-  const addEmoji = (emoji: string) => {
-    setInput(input + emoji);
+  const openFilePicker = () => {
+    fileInputRef.current?.click();
   };
 
   return (
-    <div className="bg-gray-800/50 border border-purple-500/20 rounded-lg overflow-hidden flex flex-col h-96">
-      <div className="bg-gray-900 border-b border-purple-500/20 px-4 py-3">
+    <div className="bg-gray-800/50 border border-gray-700 rounded-lg overflow-hidden">
+      <div className="p-3 border-b border-gray-700 flex items-center justify-between">
         <h3 className="text-sm font-bold text-purple-300 flex items-center gap-2">
           <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
           CHAT GLOBAL
-          <span className="text-xs text-gray-500 ml-auto">88 jogadores online</span>
         </h3>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.map((msg) => (
-          <div key={msg.id} className="flex gap-2 group hover:bg-gray-700/30 p-2 rounded transition-colors">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex-shrink-0 flex items-center justify-center text-xs font-bold text-white">
-              {msg.user.charAt(0)}
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <div className="flex items-baseline gap-2">
-                <span className="font-semibold text-white text-sm">{msg.user}</span>
-                <span className="text-xs text-purple-400">{msg.country}</span>
-                <span className="text-xs text-gray-500 ml-auto">{msg.timestamp}</span>
-              </div>
-              <p className="text-sm text-gray-300 break-words mt-1">{msg.message}</p>
-            </div>
-          </div>
-        ))}
-
-        <div ref={chatEndRef} />
-      </div>
-
-      {showEmojis && (
-        <div className="border-t border-purple-500/20 bg-gray-900 p-3 grid grid-cols-6 gap-2">
-          {EMOJIS.map((emoji, idx) => (
-            <button
-              key={idx}
-              onClick={() => addEmoji(emoji)}
-              className="text-2xl hover:scale-125 transition-transform hover:bg-gray-800 p-1 rounded"
-            >
-              {emoji}
-            </button>
-          ))}
+        <div className="flex gap-2">
+          <button onClick={openFilePicker} className="text-gray-400 hover:text-white text-xl">
+            📎
+          </button>
+          <button className="text-gray-400 hover:text-white text-xl">😀</button>
         </div>
-      )}
+      </div>
 
-      <div className="border-t border-purple-500/20 bg-gray-900 p-3 space-y-2">
+      <div ref={scrollRef} className="p-3 h-64 overflow-y-auto space-y-2">
+        {messages.length === 0 ? (
+          <p className="text-gray-400 text-sm text-center">Nenhuma mensagem ainda...</p>
+        ) : (
+          messages.map((msg) => (
+            <div key={msg.id} className="flex gap-2">
+              <span className="text-gray-500 text-xs font-medium">
+                {msg.flag_emoji} {msg.country_name}:
+              </span>
+              {msg.media_url ? (
+                msg.media_type === 'image' || msg.media_type === 'gif' ? (
+                  <img src={msg.media_url} alt="Imagem" className="max-w-[200px] max-h-[200px] rounded-lg" />
+                ) : msg.media_type === 'video' ? (
+                  <video src={msg.media_url} controls className="max-w-[200px] max-h-[200px] rounded-lg" />
+                ) : msg.media_type === 'audio' ? (
+                  <audio src={msg.media_url} controls className="max-w-[200px]" />
+                ) : null
+              ) : (
+                <span className="text-gray-300 text-sm">{msg.message}</span>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="p-3 border-t border-gray-700">
         <div className="flex gap-2">
           <input
             type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder="Escreva uma mensagem..."
-            className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+            placeholder={countryName ? 'Digite sua mensagem...' : 'Faça login para enviar mensagens'}
+            disabled={!countryName}
+            className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
           />
-
           <button
-            onClick={() => setShowEmojis(!showEmojis)}
-            className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
-            title="Emojis"
+            onClick={sendMessage}
+            disabled={!countryName || loading || !newMessage.trim()}
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded font-bold text-sm"
           >
-            <SmilePlus className="w-5 h-5 text-gray-400 hover:text-yellow-400" />
-          </button>
-
-          <button className="p-2 hover:bg-gray-800 rounded-lg transition-colors" title="Imagem">
-            <ImageIcon className="w-5 h-5 text-gray-400 hover:text-blue-400" />
-          </button>
-
-          <button className="p-2 hover:bg-gray-800 rounded-lg transition-colors" title="Arquivo">
-            <Paperclip className="w-5 h-5 text-gray-400 hover:text-purple-400" />
-          </button>
-
-          <button
-            onClick={handleSendMessage}
-            disabled={!input.trim()}
-            className="p-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 rounded-lg transition-colors"
-          >
-            <Send className="w-5 h-5 text-white" />
+            Enviar
           </button>
         </div>
-
-        <p className="text-xs text-gray-500 text-center">
-          Use emojis, GIFs e stickers para expressar-se! 🎮
-        </p>
       </div>
+
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept="image/*,video/*,audio/*"
+        onChange={(e) => {
+          if (e.target.files?.[0]) {
+            handleFileUpload(e.target.files[0]);
+          }
+        }}
+      />
     </div>
   );
 }
