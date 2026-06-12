@@ -22,7 +22,6 @@ export default function HomePage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // 1. Verificar autenticação
         const { data: authData, error: authError } = await supabase.auth.getSession();
         if (authError || !authData?.session) {
           router.push('/');
@@ -31,9 +30,9 @@ export default function HomePage() {
 
         setUser(authData.session.user);
 
-        // 2. Buscar o país do usuário na tabela 'countries_politics' pelo user_id
+        // Buscar o país do usuário na tabela 'coutries_politics' pelo user_id
         const { data: countryData, error: countryError } = await supabase
-          .from('countries_politics')
+          .from('coutries_politics')
           .select('*')
           .eq('user_id', authData.session.user.id)
           .single();
@@ -46,7 +45,7 @@ export default function HomePage() {
 
         setCountryData(countryData);
 
-        // 3. Buscar dados econômicos do país
+        // Buscar dados econômicos do país
         const { data: economyData, error: economyError } = await supabase
           .from('coutries_economy')
           .select('*')
@@ -54,24 +53,23 @@ export default function HomePage() {
           .single();
 
         if (!economyError && economyData) {
-          // Junta os dados das duas tabelas
           setCountryData({
             ...countryData,
             ...economyData,
           });
         }
 
-        // 4. Buscar dados do mundo (agregados)
+        // Buscar dados do mundo (agregados)
         const { data: allCountries } = await supabase
-          .from('countries_politics')
-          .select('region_count');
+          .from('coutries_politics')
+          .select('regions_count');
 
         const { data: allEconomy } = await supabase
           .from('coutries_economy')
           .select('population, pollution');
 
         if (allCountries && allEconomy) {
-          const totalRegions = allCountries.reduce((acc, c) => acc + (c.region_count || 0), 0);
+          const totalRegions = allCountries.reduce((acc, c) => acc + (c.regions_count || 0), 0);
           const totalPopulation = allEconomy.reduce((acc, c) => acc + (c.population || 0), 0);
           const totalPollution = allEconomy.reduce((acc, c) => acc + (c.pollution || 0), 0);
 
@@ -96,10 +94,7 @@ export default function HomePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white">Carregando jogo...</p>
-        </div>
+        <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -129,7 +124,6 @@ export default function HomePage() {
 
         <main className="flex-1 w-full overflow-x-hidden">
           <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-            {/* Banner */}
             <BannerSection
               countryName={countryData?.country_name || 'Carregando...'}
               leaderName={countryData?.head_of_state || 'Líder'}
@@ -140,11 +134,10 @@ export default function HomePage() {
               confidence={countryData?.government_trust || 50}
             />
 
-            {/* Stats */}
             <StatsBoxes
               yourCountry={{
-                regions: countryData?.region_count || 0,
-                buildings: 0, // Buscar da tabela de infraestrutura depois
+                regions: countryData?.regions_count || 0,
+                buildings: 0,
                 pollution: countryData?.pollution || 0,
                 population: countryData?.population || 0,
               }}
@@ -155,7 +148,6 @@ export default function HomePage() {
               }}
             />
 
-            {/* Chat Global */}
             <GlobalChat />
 
             <div className="bg-gray-800/50 border border-yellow-500/20 rounded-lg p-4">
