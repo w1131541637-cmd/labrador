@@ -13,12 +13,12 @@ import {
 
 const TABS = [
   { name: 'home', icon: Home, path: '/home', color: 'text-blue-400' },
-  { name: 'feed', icon: MessageSquare, path: '/home/feed', color: 'text-green-400' },
-  { name: 'infra', icon: Building2, path: '/home/infra', color: 'text-yellow-400' },
-  { name: 'economia', icon: TrendingUp, path: '/home/economia', color: 'text-purple-400' },
-  { name: 'un', icon: Globe, path: '/home/un', color: 'text-red-400' },
-  { name: 'war', icon: Sword, path: '/home/war', color: 'text-orange-400' },
-  { name: 'nacao', icon: Users, path: '/home/nacao', color: 'text-cyan-400' },
+  { name: 'feed', icon: MessageSquare, path: '/feed', color: 'text-green-400' },
+  { name: 'infra', icon: Building2, path: '/infra', color: 'text-yellow-400' },
+  { name: 'economia', icon: TrendingUp, path: '/economia', color: 'text-purple-400' },
+  { name: 'un', icon: Globe, path: '/un', color: 'text-red-400' },
+  { name: 'war', icon: Sword, path: '/war', color: 'text-orange-400' },
+  { name: 'nacao', icon: Users, path: '/nacao', color: 'text-cyan-400' },
 ];
 
 export default function BottomNav() {

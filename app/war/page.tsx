@@ -30,7 +30,11 @@ export default function WarPage() {
           .eq('user_id', authData.session.user.id)
           .single();
 
-        if (!countryData) return;
+        if (!countryData) {
+          // ALTERAÇÃO 1: Para o loading se não encontrar o país
+          setLoading(false);
+          return;
+        }
         setCountry(countryData);
 
         // Buscar guerra ativa
@@ -94,9 +98,17 @@ export default function WarPage() {
   }
 
   if (!country) {
+    // ALTERAÇÃO 2: Feedback visual se o país não for encontrado
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center text-red-400">
-        Erro ao carregar dados
+      <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center text-red-400 p-4 text-center">
+        <p className="text-xl font-bold mb-2">País não encontrado</p>
+        <p className="text-gray-400">Você precisa criar um país ou vincular seu usuário a um para acessar esta aba.</p>
+        <button 
+          onClick={() => router.push('/home')}
+          className="mt-4 px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-700"
+        >
+          Voltar para Home
+        </button>
       </div>
     );
   }
