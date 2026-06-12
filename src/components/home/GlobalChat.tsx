@@ -100,6 +100,19 @@ export default function GlobalChat() {
     } else {
       console.log('Mensagem enviada com sucesso!');
       setNewMessage('');
+      // Recarregar as mensagens
+      const { data: updatedMessages } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .order('created_at', { ascending: true })
+        .limit(50);
+
+      if (updatedMessages) {
+        setMessages(updatedMessages);
+        if (scrollRef.current) {
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+      }
     }
     setLoading(false);
   };
