@@ -13,7 +13,6 @@ export default function GlobalChat() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // 1. Carregar o país do usuário logado
   useEffect(() => {
     const getUserCountry = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -33,7 +32,6 @@ export default function GlobalChat() {
     getUserCountry();
   }, []);
 
-  // 2. Carregar mensagens do banco
   useEffect(() => {
     const loadMessages = async () => {
       const { data, error } = await supabase
@@ -51,7 +49,6 @@ export default function GlobalChat() {
     };
     loadMessages();
 
-    // 3. Inscrever para novas mensagens em tempo real
     const subscription = supabase
       .channel('chat_messages')
       .on('postgres_changes', {
@@ -73,31 +70,56 @@ export default function GlobalChat() {
     };
   }, []);
 
-  // 4. Enviar mensagem de texto
   const sendMessage = async () => {
     if (!newMessage.trim() || !countryName) return;
 
+    const { data: countryData } = await supabase
+      .from('coutries_politics')
+      .select('id')
+      .eq('country_name', countryName)
+      .single();
+
+    if (!countryData) {
+      console.error('País não encontrado');
+      return;
+    }
+
     setLoading(true);
-    await supabase
+    const { error } = await supabase
       .from('chat_messages')
       .insert({
-        country_name: countryName,
+        country_id: countryData.id,
         flag_emoji: flagEmoji,
         message: newMessage.trim(),
         media_type: null,
         media_url: null,
       });
 
-    setNewMessage('');
+    if (error) {
+      console.error('Erro ao enviar mensagem:', error);
+    } else {
+      console.log('Mensagem enviada com sucesso!');
+      setNewMessage('');
+    }
     setLoading(false);
   };
 
-  // 5. Upload de arquivo
   const handleFileUpload = async (file: File) => {
     if (!file || !countryName) return;
     setUploading(true);
 
     try {
+      const { data: countryData } = await supabase
+        .from('coutries_politics')
+        .select('id')
+        .eq('country_name', countryName)
+        .single();
+
+      if (!countryData) {
+        console.error('País não encontrado');
+        return;
+      }
+
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `${countryName}/${fileName}`;
@@ -123,7 +145,7 @@ export default function GlobalChat() {
       await supabase
         .from('chat_messages')
         .insert({
-          country_name: countryName,
+          country_id: countryData.id,
           flag_emoji: flagEmoji,
           message: null,
           media_type: mediaType,
