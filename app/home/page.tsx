@@ -15,48 +15,82 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
-
-  // Dados do país (exemplo - será substituído por dados do banco)
-  const countryData = {
-    name: 'Brasil',
-    leader: 'Lula da Silva',
-    motto: 'Ordem e Progresso',
-    flag: 'https://via.placeholder.com/64?text=BR',
-    banner:
-      'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=800&h=400&fit=crop',
-    approval: 65,
-    confidence: 72,
-    regions: 5,
-    buildings: 247,
-    pollution: 45,
-    population: 215000000,
-  };
-
-  const worldData = {
-    totalRegions: 440,
-    activeCountries: 15,
-    globalPollution: 38,
-  };
+  const [countryData, setCountryData] = useState<any>(null);
+  const [worldData, setWorldData] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const loadData = async () => {
       try {
-        const { data, error } = await supabase.auth.getSession();
-
-        if (error || !data?.session) {
+        // 1. Verificar autenticação
+        const { data: authData, error: authError } = await supabase.auth.getSession();
+        if (authError || !authData?.session) {
           router.push('/');
           return;
         }
 
-        setUser(data.session.user);
+        setUser(authData.session.user);
+
+        // 2. Buscar o país do usuário na tabela 'countries_politics' pelo user_id
+        const { data: countryData, error: countryError } = await supabase
+          .from('countries_politics')
+          .select('*')
+          .eq('user_id', authData.session.user.id)
+          .single();
+
+        if (countryError || !countryData) {
+          setError('País não encontrado. Verifique se o user_id está preenchido na tabela.');
+          setLoading(false);
+          return;
+        }
+
+        setCountryData(countryData);
+
+        // 3. Buscar dados econômicos do país
+        const { data: economyData, error: economyError } = await supabase
+          .from('coutries_economy')
+          .select('*')
+          .eq('country_name', countryData.country_name)
+          .single();
+
+        if (!economyError && economyData) {
+          // Junta os dados das duas tabelas
+          setCountryData({
+            ...countryData,
+            ...economyData,
+          });
+        }
+
+        // 4. Buscar dados do mundo (agregados)
+        const { data: allCountries } = await supabase
+          .from('countries_politics')
+          .select('region_count');
+
+        const { data: allEconomy } = await supabase
+          .from('coutries_economy')
+          .select('population, pollution');
+
+        if (allCountries && allEconomy) {
+          const totalRegions = allCountries.reduce((acc, c) => acc + (c.region_count || 0), 0);
+          const totalPopulation = allEconomy.reduce((acc, c) => acc + (c.population || 0), 0);
+          const totalPollution = allEconomy.reduce((acc, c) => acc + (c.pollution || 0), 0);
+
+          setWorldData({
+            totalRegions,
+            totalPopulation,
+            avgPollution: Math.round(totalPollution / allEconomy.length),
+          });
+        }
+
         setLoading(false);
       } catch (err) {
-        console.error('Erro ao verificar autenticação:', err);
-        router.push('/');
+        console.error('Erro ao carregar dados:', err);
+        setError('Erro ao carregar dados');
+        setLoading(false);
       }
     };
 
-    checkAuth();
+    loadData();
   }, [router]);
 
   if (loading) {
@@ -70,64 +104,77 @@ export default function HomePage() {
     );
   }
 
+  if (error || !countryData) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-400 mb-4">{error || 'Erro ao carregar dados'}</p>
+          <button
+            onClick={() => router.push('/')}
+            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+          >
+            Voltar ao Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      {/* Header */}
       <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} menuOpen={sidebarOpen} />
 
-      {/* Container Principal */}
       <div className="flex pt-12 pb-20">
-        {/* Sidebar */}
         <SidebarMenu isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-        {/* Conteúdo Principal */}
         <main className="flex-1 w-full overflow-x-hidden">
           <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
             {/* Banner */}
             <BannerSection
-              countryName={countryData.name}
-              leaderName={countryData.leader}
-              countryMotto={countryData.motto}
-              flagUrl={countryData.flag}
-              bannerUrl={countryData.banner}
-              approval={countryData.approval}
-              confidence={countryData.confidence}
+              countryName={countryData?.country_name || 'Carregando...'}
+              leaderName={countryData?.head_of_state || 'Líder'}
+              countryMotto={countryData?.motto || 'Eu prefiro viver uma vida curta e gloriosa...'}
+              flagUrl={countryData?.flag_emoji || 'https://via.placeholder.com/64?text=🏳️'}
+              bannerUrl={countryData?.home_banner_url || 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=800&h=400&fit=crop'}
+              approval={countryData?.approval_rating || 50}
+              confidence={countryData?.government_trust || 50}
             />
 
             {/* Stats */}
             <StatsBoxes
               yourCountry={{
-                regions: countryData.regions,
-                buildings: countryData.buildings,
-                pollution: countryData.pollution,
-                population: countryData.population,
+                regions: countryData?.region_count || 0,
+                buildings: 0, // Buscar da tabela de infraestrutura depois
+                pollution: countryData?.pollution || 0,
+                population: countryData?.population || 0,
               }}
-              world={worldData}
+              world={{
+                totalRegions: worldData?.totalRegions || 0,
+                activeCountries: 0,
+                globalPollution: worldData?.avgPollution || 0,
+              }}
             />
 
             {/* Chat Global */}
             <GlobalChat />
 
-            {/* Avisos Importantes */}
             <div className="bg-gray-800/50 border border-yellow-500/20 rounded-lg p-4">
               <h3 className="text-sm font-bold text-yellow-400 mb-3">⚠️ AVISOS</h3>
               <div className="space-y-2 text-sm text-gray-300">
-                <p>📢 Parlamento propõe: Aumentar Imposto de Renda para 15%</p>
-                <p>🤝 Argentina propõe aliança defensiva</p>
-                <p>⚔️ EUA mobilizou 5.000 soldados na fronteira</p>
+                <p>📢 Bem-vindo a {countryData?.country_name || 'Carregando...'}!</p>
+                <p>🎮 Você está logado e pronto para jogar</p>
+                <p>💰 Conta Federal: NF {(countryData?.federal_account / 1000000000).toFixed(1)}B</p>
               </div>
             </div>
 
-            {/* Footer Info */}
             <div className="text-center text-xs text-gray-500 pb-4">
-              <p>Bem-vindo ao LABRADOR, {countryData.name}!</p>
+              <p>Bem-vindo ao LABRADOR, {countryData?.country_name || 'Jogador'}!</p>
               <p>Última atualização: há alguns segundos</p>
             </div>
           </div>
         </main>
       </div>
 
-      {/* Bottom Navigation */}
       <BottomNav />
     </div>
   );

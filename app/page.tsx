@@ -79,7 +79,17 @@ export default function LoginPage() {
 
         if (error) {
           setError(error.message);
-        } else {
+        } else if (data.user) {
+          // Salva o user_id na tabela countries_politics
+          const { error: updateError } = await supabase
+            .from('countries_politics')
+            .update({ user_id: data.user.id })
+            .eq('country_name', selectedCountry);
+
+          if (updateError) {
+            console.error('Erro ao salvar user_id:', updateError);
+          }
+
           setError('✅ Cadastro realizado! Verifique seu email para ativar a conta.');
           setTimeout(() => {
             setEmail('');
@@ -118,8 +128,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-blue-900 flex flex-col items-center overflow-hidden relative">
-      
-      {/* Banner com imagem e título sobreposto */}
       <div className="relative w-full h-64 md:h-80 border-b border-white/10">
         <Image
           src="https://conteudo.imguol.com.br/c/noticias/05/2022/01/14/notas-dolar-eua-1642179172721_v2_450x600.jpg"
