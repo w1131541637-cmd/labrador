@@ -3,7 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@src/lib/supabaseClient';
+import Header from '@src/components/layout/Hearder';
 import BottomNav from '@src/components/layout/BottomNav';
+import SidebarMenu from '@src/components/layout/SidebarMenu';
 
 /* ─── Tipos ──────────────────────────────────────────────────────────────── */
 interface CountryData {
@@ -166,6 +168,7 @@ function StatScroll({ items }: { items: { label: string; value: string; color?: 
 ════════════════════════════════════════════════════════════════════════════ */
 export default function StatePage() {
   const router = useRouter();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   /* dados */
   const [country, setCountry] = useState<CountryData | null>(null);
@@ -321,169 +324,161 @@ export default function StatePage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: C.bg, fontFamily: 'Arial, Helvetica, sans-serif', color: C.text, paddingBottom: '60px' }}>
 
-      {/* ── CARROSSEL DE BANNERS ─────────────────────────────────── */}
-      <div style={{ position: 'relative', width: '100%', height: '200px', backgroundColor: '#111', overflow: 'hidden' }}>
-        {banners.length > 0 ? (
-          <img
-            src={banners[bannerIdx]}
-            alt="banner"
-            style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'opacity 0.5s' }}
-          />
-        ) : (
-          <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #1a1a2e, #16213e)' }} />
-        )}
-        {/* Indicadores do carrossel */}
-        {banners.length > 1 && (
-          <div style={{ position: 'absolute', bottom: '8px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '4px' }}>
-            {banners.map((_, i) => (
-              <div key={i} onClick={() => setBannerIdx(i)} style={{
-                width: i === bannerIdx ? '16px' : '6px', height: '6px',
-                borderRadius: '3px', backgroundColor: i === bannerIdx ? '#fff' : 'rgba(255,255,255,0.4)',
-                cursor: 'pointer', transition: 'all 0.3s',
-              }} />
-            ))}
-          </div>
-        )}
-      </div>
+      <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} menuOpen={sidebarOpen} />
+      <SidebarMenu isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      {/* ── IDENTIDADE DO PAÍS ───────────────────────────────────── */}
-      <div style={{ backgroundColor: C.panel, borderBottom: `1px solid ${C.border}`, padding: '12px', display: 'flex', gap: '12px', alignItems: 'center' }}>
-        {/* Bandeira em moldura quadrada */}
-        <div style={{
-          width: '72px', height: '72px', flexShrink: 0,
-          border: `2px solid ${C.border}`, borderRadius: '4px', overflow: 'hidden',
-          backgroundColor: '#222',
-        }}>
-          {country?.flag_url ? (
-            <img src={country.flag_url} alt="flag" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      <div style={{ paddingTop: '48px' }}>
+
+        <div style={{ position: 'relative', width: '100%', height: '200px', backgroundColor: '#111', overflow: 'hidden' }}>
+          {banners.length > 0 ? (
+            <img src={banners[bannerIdx]} alt="banner" style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'opacity 0.5s' }} />
           ) : (
-            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px' }}>🏳</div>
+            <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #1a1a2e, #16213e)' }} />
           )}
-        </div>
-
-        {/* Nome e capital */}
-        <div>
-          <div style={{ fontSize: '16px', fontWeight: 'bold', color: C.text }}>{country?.country_name || '—'}</div>
-          {country?.capital && (
-            <div style={{ fontSize: '12px', color: C.muted, marginTop: '2px' }}>🏛 {country.capital}</div>
-          )}
-          <div style={{ fontSize: '11px', color: C.blue, marginTop: '4px' }}>
-            ⚡ Poder Político: <span style={{ color: (country?.power_politics ?? 0) < 20 ? C.red : C.green, fontWeight: 'bold' }}>
-              {country?.power_politics ?? 0}/100
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── CONFIGURAÇÕES DO ESTADO ──────────────────────────────── */}
-      <SectionHeader>Configurações do Estado {saving && <span style={{ color: C.muted }}>• salvando...</span>}</SectionHeader>
-      <div style={{ backgroundColor: C.panel }}>
-        <RRSelect label="Título do Líder" value={country?.leader_title || ''} options={LEADER_TITLES}
-          onChange={(v) => saveConfig('leader_title', v)} />
-        <RRSelect label="Estrutura de Estado" value={country?.state_structure || ''} options={STATE_STRUCTURES}
-          onChange={(v) => saveConfig('state_structure', v)} />
-        <RRSelect label="Religião" value={country?.religion || ''} options={RELIGIONS}
-          onChange={(v) => saveConfig('religion', v)} />
-        <RRSelect label="Moeda Nacional" value={country?.currency || ''} options={CURRENCIES}
-          onChange={(v) => saveConfig('currency', v)} />
-      </div>
-
-      {/* ── INICIATIVA PARLAMENTAR ───────────────────────────────── */}
-      <SectionHeader>Iniciativa Parlamentar</SectionHeader>
-      <div style={{ backgroundColor: C.panel, padding: '12px' }}>
-        <select
-          value={selectedInitiative}
-          onChange={(e) => { setSelectedInitiative(e.target.value); setMsg(''); }}
-          style={{
-            width: '100%', padding: '9px 12px', marginBottom: '8px',
-            backgroundColor: '#1e1e1e', border: `1px solid ${C.border}`,
-            borderRadius: '2px', color: C.text, fontSize: '13px', outline: 'none',
-          }}
-        >
-          <option value="">— Selecionar iniciativa —</option>
-          {INITIATIVES.map((i) => (
-            <option key={i.id} value={i.id}>{i.name} (−{i.cost} PP)</option>
-          ))}
-        </select>
-
-        {/* Info da iniciativa selecionada */}
-        {initiative && (
-          <div style={{ backgroundColor: '#1e1e1e', border: `1px solid ${C.border}`, borderRadius: '2px', padding: '8px 10px', marginBottom: '8px', fontSize: '12px', color: C.sub }}>
-            <div style={{ color: C.yellow, marginBottom: '2px' }}>Custo: {initiative.cost} PP</div>
-            <div>{initiative.effect}</div>
-          </div>
-        )}
-
-        {msg && (
-          <div style={{
-            padding: '7px 10px', marginBottom: '8px', borderRadius: '2px', fontSize: '12px',
-            backgroundColor: msg.startsWith('✅') ? '#1a3a1a' : '#3a1a1a',
-            border: `1px solid ${msg.startsWith('✅') ? '#2d6a2d' : '#6a2d2d'}`,
-            color: msg.startsWith('✅') ? '#6fcf6f' : '#cf6f6f',
-          }}>{msg}</div>
-        )}
-
-        <button
-          onClick={handleInitiative}
-          style={{
-            width: '100%', padding: '11px',
-            backgroundColor: C.green, border: 'none', borderRadius: '2px',
-            color: '#fff', fontSize: '13px', fontWeight: 'bold',
-            cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '1px',
-          }}
-        >
-          Iniciativa Parlamentar
-        </button>
-      </div>
-
-      {/* ── LEIS ATIVAS ─────────────────────────────────────────── */}
-      <SectionHeader>Leis Ativas ({activeLaws.length})</SectionHeader>
-      <div style={{ backgroundColor: C.panel }}>
-        {activeLaws.length === 0 ? (
-          <div style={{ padding: '16px 12px', fontSize: '12px', color: C.muted, textAlign: 'center' }}>
-            Nenhuma lei ativa.
-          </div>
-        ) : (
-          activeLaws.slice(0, showLaws ? activeLaws.length : 3).map((law) => (
-            <div key={law.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderBottom: `1px solid ${C.border}` }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '13px', color: C.text, fontWeight: 'bold' }}>{law.name}</div>
-                <div style={{ fontSize: '11px', color: C.muted }}>{law.description}</div>
-              </div>
-              <button
-                onClick={() => revokeLaw(law.id)}
-                style={{
-                  padding: '5px 10px', backgroundColor: C.red, border: 'none',
-                  borderRadius: '2px', color: '#fff', fontSize: '11px',
-                  cursor: 'pointer', flexShrink: 0,
-                }}
-              >
-                Revogar
-              </button>
+          {banners.length > 1 && (
+            <div style={{ position: 'absolute', bottom: '8px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '4px' }}>
+              {banners.map((_, i) => (
+                <div key={i} onClick={() => setBannerIdx(i)} style={{
+                  width: i === bannerIdx ? '16px' : '6px', height: '6px',
+                  borderRadius: '3px', backgroundColor: i === bannerIdx ? '#fff' : 'rgba(255,255,255,0.4)',
+                  cursor: 'pointer', transition: 'all 0.3s',
+                }} />
+              ))}
             </div>
-          ))
-        )}
-        {activeLaws.length > 3 && (
-          <button
-            onClick={() => setShowLaws(!showLaws)}
-            style={{ width: '100%', padding: '8px', backgroundColor: 'transparent', border: 'none', color: C.blue, fontSize: '12px', cursor: 'pointer' }}
+          )}
+        </div>
+
+        <div style={{ backgroundColor: C.panel, borderBottom: `1px solid ${C.border}`, padding: '16px', display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <div style={{
+            width: '80px', height: '80px', flexShrink: 0,
+            border: `3px solid ${C.border}`, borderRadius: '50%', overflow: 'hidden',
+            backgroundColor: '#222', boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+          }}>
+            {country?.flag_url ? (
+              <img src={country.flag_url} alt="flag" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px' }}>🏳</div>
+            )}
+          </div>
+          <div>
+            <div style={{ fontSize: '20px', fontWeight: 'bold', color: C.text }}>
+              {country?.country_name || '—'}
+            </div>
+            {country?.capital && (
+              <div style={{ fontSize: '14px', color: C.muted, marginTop: '2px' }}>
+                🏛 Capital: {country.capital}
+              </div>
+            )}
+            <div style={{ fontSize: '12px', color: C.blue, marginTop: '6px' }}>
+              ⚡ Poder Político: <span style={{ color: (country?.power_politics ?? 0) < 20 ? C.red : C.green, fontWeight: 'bold' }}>
+                {country?.power_politics ?? 0}/100
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <SectionHeader>Configurações do Estado {saving && <span style={{ color: C.muted }}>• salvando...</span>}</SectionHeader>
+        <div style={{ backgroundColor: C.panel }}>
+          <RRSelect label="Título do Líder" value={country?.leader_title || ''} options={LEADER_TITLES}
+            onChange={(v) => saveConfig('leader_title', v)} />
+          <RRSelect label="Estrutura de Estado" value={country?.state_structure || ''} options={STATE_STRUCTURES}
+            onChange={(v) => saveConfig('state_structure', v)} />
+          <RRSelect label="Religião" value={country?.religion || ''} options={RELIGIONS}
+            onChange={(v) => saveConfig('religion', v)} />
+          <RRSelect label="Moeda Nacional" value={country?.currency || ''} options={CURRENCIES}
+            onChange={(v) => saveConfig('currency', v)} />
+        </div>
+
+        <SectionHeader>Iniciativa Parlamentar</SectionHeader>
+        <div style={{ backgroundColor: C.panel, padding: '12px' }}>
+          <select
+            value={selectedInitiative}
+            onChange={(e) => { setSelectedInitiative(e.target.value); setMsg(''); }}
+            style={{
+              width: '100%', padding: '9px 12px', marginBottom: '8px',
+              backgroundColor: '#1e1e1e', border: `1px solid ${C.border}`,
+              borderRadius: '2px', color: C.text, fontSize: '13px', outline: 'none',
+            }}
           >
-            {showLaws ? 'Mostrar menos ▲' : `Ver todas (${activeLaws.length}) ▼`}
+            <option value="">— Selecionar iniciativa —</option>
+            {INITIATIVES.map((i) => (
+              <option key={i.id} value={i.id}>{i.name} (−{i.cost} PP)</option>
+            ))}
+          </select>
+          {initiative && (
+            <div style={{ backgroundColor: '#1e1e1e', border: `1px solid ${C.border}`, borderRadius: '2px', padding: '8px 10px', marginBottom: '8px', fontSize: '12px', color: C.sub }}>
+              <div style={{ color: C.yellow, marginBottom: '2px' }}>Custo: {initiative.cost} PP</div>
+              <div>{initiative.effect}</div>
+            </div>
+          )}
+          {msg && (
+            <div style={{
+              padding: '7px 10px', marginBottom: '8px', borderRadius: '2px', fontSize: '12px',
+              backgroundColor: msg.startsWith('✅') ? '#1a3a1a' : '#3a1a1a',
+              border: `1px solid ${msg.startsWith('✅') ? '#2d6a2d' : '#6a2d2d'}`,
+              color: msg.startsWith('✅') ? '#6fcf6f' : '#cf6f6f',
+            }}>{msg}</div>
+          )}
+          <button
+            onClick={handleInitiative}
+            style={{
+              width: '100%', padding: '11px',
+              backgroundColor: C.green, border: 'none', borderRadius: '2px',
+              color: '#fff', fontSize: '13px', fontWeight: 'bold',
+              cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '1px',
+            }}
+          >
+            Iniciativa Parlamentar
           </button>
-        )}
+        </div>
+
+        <SectionHeader>Leis Ativas ({activeLaws.length})</SectionHeader>
+        <div style={{ backgroundColor: C.panel }}>
+          {activeLaws.length === 0 ? (
+            <div style={{ padding: '16px 12px', fontSize: '12px', color: C.muted, textAlign: 'center' }}>
+              Nenhuma lei ativa.
+            </div>
+          ) : (
+            activeLaws.slice(0, showLaws ? activeLaws.length : 3).map((law) => (
+              <div key={law.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderBottom: `1px solid ${C.border}` }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '13px', color: C.text, fontWeight: 'bold' }}>{law.name}</div>
+                  <div style={{ fontSize: '11px', color: C.muted }}>{law.description}</div>
+                </div>
+                <button
+                  onClick={() => revokeLaw(law.id)}
+                  style={{
+                    padding: '5px 10px', backgroundColor: C.red, border: 'none',
+                    borderRadius: '2px', color: '#fff', fontSize: '11px',
+                    cursor: 'pointer', flexShrink: 0,
+                  }}
+                >
+                  Revogar
+                </button>
+              </div>
+            ))
+          )}
+          {activeLaws.length > 3 && (
+            <button
+              onClick={() => setShowLaws(!showLaws)}
+              style={{ width: '100%', padding: '8px', backgroundColor: 'transparent', border: 'none', color: C.blue, fontSize: '12px', cursor: 'pointer' }}
+            >
+              {showLaws ? 'Mostrar menos ▲' : `Ver todas (${activeLaws.length}) ▼`}
+            </button>
+          )}
+        </div>
+
+        <SectionHeader>Economia</SectionHeader>
+        <div style={{ backgroundColor: C.panel, padding: '4px 0' }}>
+          {ecoItems.length > 0 && <StatScroll items={ecoItems} />}
+        </div>
+
+        <SectionHeader>Forças Militares</SectionHeader>
+        <div style={{ backgroundColor: C.panel, padding: '4px 0' }}>
+          {milItems.length > 0 && <StatScroll items={milItems} />}
+        </div>
+
       </div>
-
-      {/* ── ECONOMIA ─────────────────────────────────────────────── */}
-      <SectionHeader>Economia</SectionHeader>
-      {economy ? <StatScroll items={ecoItems} /> : (
-        <div style={{ backgroundColor: C.panel, padding: '12px', fontSize: '12px', color: C.muted }}>Sem dados econômicos.</div>
-      )}
-
-      {/* ── FORÇAS MILITARES ─────────────────────────────────────── */}
-      <SectionHeader>Forças Militares</SectionHeader>
-      {military ? <StatScroll items={milItems} /> : (
-        <div style={{ backgroundColor: C.panel, padding: '12px', fontSize: '12px', color: C.muted }}>Sem dados militares.</div>
-      )}
 
       <BottomNav />
     </div>

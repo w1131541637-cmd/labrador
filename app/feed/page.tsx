@@ -4,7 +4,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@src/lib/supabaseClient';
+import Header from '@src/components/layout/Hearder';
 import BottomNav from '@src/components/layout/BottomNav';
+import SidebarMenu from '@src/components/layout/SidebarMenu';
 
 interface FeedPost {
   id: string;
@@ -30,6 +32,7 @@ export default function FeedPage() {
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Carregar posts do feed
   useEffect(() => {
@@ -86,271 +89,119 @@ export default function FeedPage() {
       .replace(/\n/g, '<br/>');
   };
 
-  // Estilos
-  const styles = {
-    page: {
-      minHeight: '100vh',
-      backgroundColor: '#393939',
-      fontFamily: 'Arial, Helvetica, sans-serif',
-      color: '#f1f1f1',
-      paddingBottom: '60px',
-    } as React.CSSProperties,
-
-    header: {
-      backgroundColor: '#292929',
-      borderBottom: '1px solid #444',
-      padding: '12px 16px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    } as React.CSSProperties,
-
-    title: {
-      fontSize: '18px',
-      fontWeight: 'bold',
-      color: '#f1f1f1',
-    } as React.CSSProperties,
-
-    postCard: {
-      backgroundColor: '#2e2e2e',
-      margin: '8px 12px',
-      padding: '16px',
-      borderRadius: '8px',
-      border: '1px solid #444',
-    } as React.CSSProperties,
-
-    postHeader: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      marginBottom: '8px',
-    } as React.CSSProperties,
-
-    flag: {
-      width: '32px',
-      height: '24px',
-      borderRadius: '4px',
-      objectFit: 'cover' as const,
-      backgroundColor: '#222',
-    } as React.CSSProperties,
-
-    countryName: {
-      fontSize: '13px',
-      fontWeight: 'bold',
-      color: '#f1f1f1',
-    } as React.CSSProperties,
-
-    postDate: {
-      fontSize: '11px',
-      color: '#666',
-      marginLeft: 'auto',
-    } as React.CSSProperties,
-
-    postTitle: {
-      fontSize: '16px',
-      fontWeight: 'bold',
-      color: '#f1f1f1',
-      marginBottom: '6px',
-    } as React.CSSProperties,
-
-    postCategory: {
-      display: 'inline-block',
-      fontSize: '10px',
-      color: '#3c6ae0',
-      backgroundColor: 'rgba(60,106,224,0.15)',
-      padding: '2px 10px',
-      borderRadius: '12px',
-      marginBottom: '8px',
-      textTransform: 'uppercase' as const,
-      fontWeight: 'bold',
-    } as React.CSSProperties,
-
-    postJournal: {
-      fontSize: '12px',
-      color: '#666',
-      fontStyle: 'italic',
-      marginBottom: '6px',
-    } as React.CSSProperties,
-
-    postContent: {
-      fontSize: '13px',
-      color: '#ccc',
-      lineHeight: '1.6',
-    } as React.CSSProperties,
-
-    postFooter: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '16px',
-      marginTop: '12px',
-      paddingTop: '12px',
-      borderTop: '1px solid #444',
-    } as React.CSSProperties,
-
-    footerButton: {
-      background: 'none',
-      border: 'none',
-      color: '#666',
-      fontSize: '12px',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '4px',
-      padding: '4px 8px',
-      borderRadius: '4px',
-      transition: 'all 0.2s',
-    } as React.CSSProperties,
-
-    loadingBox: {
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      height: '60vh',
-      color: '#666',
-      fontSize: '14px',
-    } as React.CSSProperties,
-
-    errorBox: {
-      backgroundColor: '#3a1a1a',
-      border: '1px solid #6a2d2d',
-      color: '#cf6f6f',
-      padding: '12px 16px',
-      margin: '16px 12px',
-      borderRadius: '8px',
-      fontSize: '13px',
-    } as React.CSSProperties,
-
-    emptyBox: {
-      textAlign: 'center' as const,
-      color: '#666',
-      padding: '60px 20px',
-      fontSize: '14px',
-    } as React.CSSProperties,
-
-    // Botão flutuante +
-    fab: {
-      position: 'fixed' as const,
-      bottom: '80px',
-      right: '20px',
-      width: '56px',
-      height: '56px',
-      borderRadius: '50%',
-      backgroundColor: '#3c6ae0',
-      border: 'none',
-      color: '#fff',
-      fontSize: '30px',
-      fontWeight: 'bold',
-      cursor: 'pointer',
-      boxShadow: '0 4px 12px rgba(60,106,224,0.4)',
-      zIndex: 20,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      transition: 'all 0.2s',
-    } as React.CSSProperties,
-  };
-
   if (loading) {
     return (
-      <div style={styles.page}>
-        <div style={styles.header}>
-          <div style={styles.title}>📰 Feed</div>
-        </div>
-        <div style={styles.loadingBox}>Carregando posts...</div>
-        <BottomNav />
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div style={styles.page}>
-      {/* Cabeçalho */}
-      <div style={styles.header}>
-        <div style={styles.title}>📰 Feed</div>
-      </div>
+    <div className="min-h-screen bg-gray-900 text-white">
+      {/* Header com LABRADOR e menu sanduíche */}
+      <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} menuOpen={sidebarOpen} />
 
-      {/* Lista de posts */}
-      <div>
-        {error && <div style={styles.errorBox}>⚠️ {error}</div>}
+      {/* Sidebar Menu (três pontinhos) */}
+      <SidebarMenu isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-        {posts.length === 0 ? (
-          <div style={styles.emptyBox}>
-            <div style={{ fontSize: '40px', marginBottom: '16px' }}>📭</div>
-            <div>Nenhum post publicado ainda.</div>
-            <div style={{ fontSize: '12px', color: '#555', marginTop: '8px' }}>
-              Clique no botão + para criar seu primeiro artigo!
+      <div className="pt-12 pb-20">
+        <main className="flex-1 w-full overflow-x-hidden">
+          <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+            
+            {/* Título da página */}
+            <div className="flex items-center justify-between">
+              <h1 className="text-xl font-bold text-white">📰 Feed de Notícias</h1>
+              <span className="text-sm text-gray-500">{posts.length} artigos</span>
             </div>
+
+            {/* Lista de posts */}
+            {error && (
+              <div className="bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg">
+                ⚠️ {error}
+              </div>
+            )}
+
+            {posts.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="text-6xl mb-4">📭</div>
+                <p className="text-gray-400">Nenhum post publicado ainda.</p>
+                <p className="text-sm text-gray-500 mt-2">
+                  Clique no botão <span className="text-purple-400">+</span> para criar seu primeiro artigo!
+                </p>
+              </div>
+            ) : (
+              posts.map((post) => (
+                <div key={post.id} className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 hover:border-gray-600 transition-colors">
+                  {/* Cabeçalho do post */}
+                  <div className="flex items-center gap-3 mb-3">
+                    {post.countries?.flag_url ? (
+                      <img 
+                        src={post.countries.flag_url} 
+                        alt="bandeira" 
+                        className="w-8 h-6 rounded object-cover"
+                      />
+                    ) : (
+                      <div className="w-8 h-6 rounded bg-gray-700 flex items-center justify-center text-sm">🏳</div>
+                    )}
+                    <span className="font-bold text-sm text-gray-200">
+                      {post.countries?.country_name || 'Desconhecido'}
+                    </span>
+                    <span className="text-xs text-gray-500 ml-auto">{formatDate(post.created_at)}</span>
+                  </div>
+
+                  {/* Categoria */}
+                  {post.category && (
+                    <span className="text-xs text-purple-400 bg-purple-900/30 px-2 py-1 rounded-full inline-block mb-2">
+                      {post.category}
+                    </span>
+                  )}
+
+                  {/* Journal */}
+                  {post.journal && (
+                    <p className="text-xs text-gray-500 italic mb-1">📰 {post.journal}</p>
+                  )}
+
+                  {/* Título */}
+                  <h2 className="text-lg font-bold text-white mb-2">{post.title}</h2>
+
+                  {/* Conteúdo */}
+                  <div 
+                    className="text-sm text-gray-300 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: renderContent(post.content) }}
+                  />
+
+                  {/* Rodapé */}
+                  <div className="flex items-center gap-4 mt-4 pt-3 border-t border-gray-700">
+                    <button className="text-xs text-gray-400 hover:text-green-400 transition-colors flex items-center gap-1">
+                      👍 {post.likes || 0}
+                    </button>
+                    <button className="text-xs text-gray-400 hover:text-red-400 transition-colors flex items-center gap-1">
+                      👎 {post.dislikes || 0}
+                    </button>
+                    <button className="text-xs text-gray-400 hover:text-blue-400 transition-colors flex items-center gap-1">
+                      💬 {post.comments_count || 0}
+                    </button>
+                    <button className="text-xs text-gray-400 hover:text-yellow-400 transition-colors flex items-center gap-1 ml-auto">
+                      🔗 {post.shares || 0}
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
-        ) : (
-          posts.map((post) => (
-            <div key={post.id} style={styles.postCard}>
-              {/* Cabeçalho do post */}
-              <div style={styles.postHeader}>
-                {post.countries?.flag_url ? (
-                  <img src={post.countries.flag_url} alt="bandeira" style={styles.flag} />
-                ) : (
-                  <div style={{ ...styles.flag, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>🏳</div>
-                )}
-                <span style={styles.countryName}>
-                  {post.countries?.country_name || 'Desconhecido'}
-                </span>
-                <span style={styles.postDate}>{formatDate(post.created_at)}</span>
-              </div>
-
-              {/* Categoria */}
-              {post.category && (
-                <div style={styles.postCategory}>{post.category}</div>
-              )}
-
-              {/* Journal */}
-              {post.journal && (
-                <div style={styles.postJournal}>📰 {post.journal}</div>
-              )}
-
-              {/* Título */}
-              <div style={styles.postTitle}>{post.title}</div>
-
-              {/* Conteúdo */}
-              <div 
-                style={styles.postContent}
-                dangerouslySetInnerHTML={{ __html: renderContent(post.content) }}
-              />
-
-              {/* Rodapé */}
-              <div style={styles.postFooter}>
-                <button style={styles.footerButton}>
-                  👍 {post.likes || 0}
-                </button>
-                <button style={styles.footerButton}>
-                  👎 {post.dislikes || 0}
-                </button>
-                <button style={styles.footerButton}>
-                  💬 {post.comments_count || 0}
-                </button>
-                <button style={styles.footerButton}>
-                  🔗 {post.shares || 0}
-                </button>
-              </div>
-            </div>
-          ))
-        )}
+        </main>
       </div>
 
-      {/* Botão flutuante + (FAB) - Redireciona para newarticle */}
+      {/* Botão flutuante + */}
       <button
-        style={styles.fab}
         onClick={() => router.push('/feed/newarticle')}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'scale(1.1)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'scale(1)';
-        }}
-        title="Criar novo artigo"
+        className="fixed bottom-24 right-6 w-14 h-14 rounded-full bg-purple-600 hover:bg-purple-700 text-white text-3xl font-bold shadow-lg shadow-purple-500/30 transition-all hover:scale-110 flex items-center justify-center z-20"
       >
         +
       </button>
 
+      {/* BottomNav com 5 itens: Home | Feed | War | Work | State */}
       <BottomNav />
     </div>
   );
