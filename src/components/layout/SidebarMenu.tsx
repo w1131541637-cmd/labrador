@@ -1,3 +1,4 @@
+// src/components/layout/SidebarMenu.tsx
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -5,8 +6,10 @@ import {
   Map,
   Package,
   DollarSign,
-  BarChart3,
+  FileText,
   ShoppingCart,
+  Settings,
+  Receipt,
   X,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
@@ -17,18 +20,20 @@ interface SidebarMenuProps {
 }
 
 const MENU_ITEMS = [
-  { name: 'MAPA', icon: Map, color: 'text-blue-400', desc: 'Ver mapa mundial' },
-  { name: 'ARMAZÉM', icon: Package, color: 'text-green-400', desc: 'Seus recursos' },
-  { name: 'ORÇAMENTO', icon: DollarSign, color: 'text-yellow-400', desc: 'Receitas/Despesas' },
-  { name: 'PASSAPORTE', icon: BarChart3, color: 'text-purple-400', desc: 'Estatísticas' },
-  { name: 'MARKET', icon: ShoppingCart, color: 'text-red-400', desc: 'Compra/Venda' },
+  { name: 'MAPA', icon: Map, path: '/world', color: 'text-blue-400', desc: 'Ver mapa mundial' },
+  { name: 'ARMAZÉM', icon: Package, path: '/storage', color: 'text-green-400', desc: 'Seus recursos' },
+  { name: 'ORÇAMENTO', icon: DollarSign, path: '/budget', color: 'text-yellow-400', desc: 'Receitas/Despesas' },
+  { name: 'BRIEFING', icon: FileText, path: '/briefing', color: 'text-purple-400', desc: 'Estatísticas' },
+  { name: 'MARKET', icon: ShoppingCart, path: '/market', color: 'text-red-400', desc: 'Compra/Venda' },
+  { name: 'TAX', icon: Receipt, path: '/tax', color: 'text-orange-400', desc: 'Impostos' },
+  { name: 'CONFIGURAÇÕES', icon: Settings, path: '/settings', color: 'text-gray-400', desc: 'Ajustes do jogo' },
 ];
 
 export default function SidebarMenu({ isOpen, onClose }: SidebarMenuProps) {
   const router = useRouter();
 
-  const handleItemClick = (item: string) => {
-    console.log('Clicou em: ' + item);
+  const handleItemClick = (path: string) => {
+    router.push(path);
     onClose();
   };
 
@@ -64,10 +69,10 @@ export default function SidebarMenu({ isOpen, onClose }: SidebarMenuProps) {
             return (
               <button
                 key={item.name}
-                onClick={() => handleItemClick(item.name)}
+                onClick={() => handleItemClick(item.path)}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gradient-to-r hover:from-purple-900/30 hover:to-transparent transition-all group"
               >
-                <Icon className="w-5 h-5 text-purple-400" />
+                <Icon className={`w-5 h-5 ${item.color}`} />
                 <div className="text-left flex-1">
                   <p className="text-white font-semibold text-sm group-hover:text-purple-300 transition-colors">
                     {item.name}
