@@ -7,6 +7,20 @@ import BottomNav from '@src/components/layout/BottomNav';
 
 type FormatTag = 'b' | 'i' | 'quote' | 'link' | 'img' | 'h1' | 'h2' | 'h3';
 
+// Categorias disponíveis
+const CATEGORIES = [
+  'Notícias',
+  'Política',
+  'Economia',
+  'Guerra',
+  'Cultura',
+  'Ciência',
+  'Tecnologia',
+  'Esportes',
+  'Opinião',
+  'Outros'
+];
+
 export default function NewArticlePage() {
   const router = useRouter();
   const [title, setTitle] = useState('');
@@ -49,41 +63,67 @@ export default function NewArticlePage() {
 
   const handlePublish = async () => {
     setError('');
-    if (!title.trim()) { setError('Escreva um título antes de publicar.'); return; }
-    if (!content.trim()) { setError('O conteúdo não pode estar vazio.'); return; }
+    
+    // Validações
+    if (!title.trim()) { 
+      setError('Escreva um título antes de publicar.'); 
+      return; 
+    }
+    if (!content.trim()) { 
+      setError('O conteúdo não pode estar vazio.'); 
+      return; 
+    }
+    if (!category.trim()) { 
+      setError('Por favor, selecione uma categoria.'); 
+      return; 
+    }
 
     setPublishing(true);
     try {
       const { data: authData } = await supabase.auth.getSession();
-      if (!authData?.session) { router.push('/'); return; }
+      if (!authData?.session) { 
+        router.push('/'); 
+        return; 
+      }
 
-      const { data: countryData } = await supabase
-        .from('countries_politics')
-        .select('country_name, flag_emoji')
+      // Buscar o country_id do usuário (tabela countries)
+      const { data: countryData, error: countryError } = await supabase
+        .from('countries')
+        .select('id, country_name')
         .eq('user_id', authData.session.user.id)
         .single();
 
-      const { error: insertError } = await supabase.from('posts').insert({
-        title: title.trim(),
-        content: content.trim(),
-        author: authData.session.user.user_metadata?.username || 'Anonymous',
-        country: countryData?.country_name || 'Unknown',
-        avatar_url: 'https://via.placeholder.com/40',
-        image_url: null,
-        journal: journal.trim() || null,
-        category: category.trim() || null,
-        likes: 0,
-        dislikes: 0,
-        comments_count: 0,
-        shares: 0,
-      });
+      if (countryError || !countryData) {
+        setError('País não encontrado. Crie seu país primeiro.');
+        setPublishing(false);
+        return;
+      }
+
+      // Inserir na tabela feed_posts
+      const { error: insertError } = await supabase
+        .from('feed_posts')
+        .insert({
+          country_id: countryData.id,
+          title: title.trim(),
+          content: content.trim(),
+          journal: journal.trim() || null,
+          category: category.trim(),
+          image_url: null,
+          created_at: new Date().toISOString(),
+          likes: 0,
+          dislikes: 0,
+          comments_count: 0,
+          shares: 0,
+        });
 
       if (insertError) {
+        console.error('Erro ao inserir:', insertError);
         setError('Erro ao publicar. Tente novamente.');
       } else {
         router.push('/feed');
       }
-    } catch {
+    } catch (err) {
+      console.error('Erro inesperado:', err);
       setError('Erro inesperado. Tente novamente.');
     } finally {
       setPublishing(false);
@@ -91,20 +131,18 @@ export default function NewArticlePage() {
   };
 
   // Renderização simples de preview (converte tags BBCode básicas)
+  // REMOVIDA a flag 's' de todas as regex para compatibilidade
   const renderPreview = (text: string) => {
-    // Substitui quebras de linha por placeholder para permitir match multilinha sem flag 's'
-    const nl = '___NL___';
     return text
-      .replace(/\n/g, nl)
-      .replace(/\[b\]([\s\S]*?)\[\/b\]/g, '<strong>$1</strong>')
-      .replace(/\[i\]([\s\S]*?)\[\/i\]/g, '<em>$1</em>')
-      .replace(/\[quote\]([\s\S]*?)\[\/quote\]/g, '<blockquote style="border-left:3px solid #3c6ae0;padding-left:8px;color:#aaa;margin:8px 0">$1</blockquote>')
-      .replace(/\[h1\]([\s\S]*?)\[\/h1\]/g, '<div style="font-size:18px;font-weight:bold;color:#f1f1f1;margin:8px 0">$1</div>')
-      .replace(/\[h2\]([\s\S]*?)\[\/h2\]/g, '<div style="font-size:15px;font-weight:bold;color:#f1f1f1;margin:6px 0">$1</div>')
-      .replace(/\[h3\]([\s\S]*?)\[\/h3\]/g, '<div style="font-size:13px;font-weight:bold;color:#ccc;margin:4px 0">$1</div>')
-      .replace(/\[url=([\s\S]*?)\]([\s\S]*?)\[\/url\]/g, '<a href="$1" style="color:#3c6ae0">$2</a>')
-      .replace(/\[img\]([\s\S]*?)\[\/img\]/g, '<img src="$1" style="max-width:100%;margin:4px 0" />')
-      .replace(new RegExp(nl, 'g'), '<br/>');
+      .replace(/\[b\](.*?)\[\/b\]/g, '<strong>$1</strong>')
+      .replace(/\[i\](.*?)\[\/i\]/g, '<em>$1</em>')
+      .replace(/\[quote\](.*?)\[\/quote\]/g, '<blockquote style="border-left:3px solid #3c6ae0;padding-left:8px;color:#aaa;margin:8px 0">$1</blockquote>')
+      .replace(/\[h1\](.*?)\[\/h1\]/g, '<div style="font-size:18px;font-weight:bold;color:#f1f1f1;margin:8px 0">$1</div>')
+      .replace(/\[h2\](.*?)\[\/h2\]/g, '<div style="font-size:15px;font-weight:bold;color:#f1f1f1;margin:6px 0">$1</div>')
+      .replace(/\[h3\](.*?)\[\/h3\]/g, '<div style="font-size:13px;font-weight:bold;color:#ccc;margin:4px 0">$1</div>')
+      .replace(/\[url=(.*?)\](.*?)\[\/url\]/g, '<a href="$1" style="color:#3c6ae0" target="_blank">$2</a>')
+      .replace(/\[img\](.*?)\[\/img\]/g, '<img src="$1" style="max-width:100%;margin:4px 0;border-radius:4px" />')
+      .replace(/\n/g, '<br/>');
   };
 
   /* ─── Estilos ─────────────────────────────────────────────────────────── */
@@ -167,6 +205,18 @@ export default function NewArticlePage() {
       fontSize: '13px',
       padding: '10px 12px',
       outline: 'none',
+    } as React.CSSProperties,
+
+    categorySelect: {
+      flex: 1,
+      backgroundColor: '#2e2e2e',
+      border: 'none',
+      color: '#f1f1f1',
+      fontSize: '13px',
+      padding: '10px 12px',
+      outline: 'none',
+      appearance: 'none' as const,
+      cursor: 'pointer',
     } as React.CSSProperties,
 
     toolbar: {
@@ -281,7 +331,7 @@ export default function NewArticlePage() {
       <div style={s.topBar}>
         <button style={s.backBtn} onClick={() => router.back()}>←</button>
         <div style={s.topTitle}>Novo Artigo</div>
-        <div style={{ width: '44px' }} />{/* espaço para centralizar o título */}
+        <div style={{ width: '44px' }} />
       </div>
 
       <div style={s.body}>
@@ -295,13 +345,16 @@ export default function NewArticlePage() {
             placeholder="📰 Nome do jornal (opcional)"
             style={s.textInput}
           />
-          <input
-            type="text"
+          <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            placeholder="Categoria"
-            style={{ ...s.textInput, borderRight: 'none' }}
-          />
+            style={s.categorySelect}
+          >
+            <option value="">Categoria</option>
+            {CATEGORIES.map((cat) => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
         </div>
 
         {/* Toolbar de formatação */}
