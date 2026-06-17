@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@src/lib/supabaseClient';
-import Header from '../../src/components/layout/Hearder';
 import BottomNav from '@src/components/layout/BottomNav';
 
 /* ─── Tipos ──────────────────────────────────────────────────────────────── */
@@ -201,9 +200,31 @@ export default function WorkPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: C.bg, fontFamily: 'Arial, Helvetica, sans-serif', color: C.text, paddingBottom: '60px' }}>
 
-      {/* Header */}
-      <div style={{ backgroundColor: '#4a3080', borderBottom: `1px solid #5a4090`, padding: '12px', textAlign: 'center', position: 'sticky', top: 0, zIndex: 10 }}>
-        <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#fff', letterSpacing: '2px' }}>LABRADOR</span>
+      {/* Header - estilo LABRADOR igual ao feed */}
+      <div style={{
+        backgroundColor: '#4a3080',
+        borderBottom: '1px solid #5a4090',
+        padding: '16px',
+        textAlign: 'center',
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
+      }}>
+        <span style={{
+          fontSize: '20px',
+          fontWeight: 'bold',
+          color: '#fff',
+          letterSpacing: '2px'
+        }}>
+          🏗️ LABRADOR
+        </span>
+        <div style={{
+          fontSize: '11px',
+          color: '#aaa',
+          marginTop: '2px'
+        }}>
+          {regions.length} regiões
+        </div>
       </div>
 
       {/* ── RECURSOS EM ESTOQUE ─────────────────────────────────── */}
@@ -310,20 +331,15 @@ export default function WorkPage() {
               <div><span style={{ color: C.muted }}>Custo: </span><span style={{ color: C.yellow }}>{buildingInfo.cost}</span></div>
               <div><span style={{ color: C.muted }}>Manutenção: </span><span style={{ color: C.red }}>{buildingInfo.maintenance}</span></div>
               <div><span style={{ color: C.muted }}>Produção: </span><span style={{ color: C.green }}>{buildingInfo.production}</span></div>
-              <div><span style={{ color: C.muted }}>Energia: </span><span style={{ color: C.blue }}>{buildingInfo.energy}/30min</span></div>
-              <div><span style={{ color: C.muted }}>Renda: </span><span style={{ color: C.yellow }}>{buildingInfo.revenue}</span></div>
-              <div><span style={{ color: C.muted }}>Insumos: </span><span style={{ color: C.sub }}>{buildingInfo.resources}</span></div>
+              <div><span style={{ color: C.muted }}>Energia: </span><span style={{ color: C.blue }}>{buildingInfo.energy}</span></div>
+              <div style={{ gridColumn: 'span 2' }}><span style={{ color: C.muted }}>Recursos: </span><span style={{ color: C.text }}>{buildingInfo.resources}</span></div>
+              {buildingInfo.revenue !== '0' && <div style={{ gridColumn: 'span 2' }}><span style={{ color: C.muted }}>Receita: </span><span style={{ color: C.green }}>{buildingInfo.revenue}</span></div>}
+              {buildingInfo.biome_note && <div style={{ gridColumn: 'span 2', color: C.yellow, fontSize: '11px' }}>⚠️ {buildingInfo.biome_note}</div>}
             </div>
-            {buildingInfo.biome_note && (
-              <div style={{ marginTop: '6px', padding: '5px 8px', backgroundColor: '#2a2a1a', border: `1px solid #6a5a2d`, borderRadius: '2px', color: C.yellow, fontSize: '11px' }}>
-                ⚠️ {buildingInfo.biome_note}
-              </div>
-            )}
           </div>
         )}
 
         {buildMsg && <div style={{ fontSize: '12px', color: buildMsg.startsWith('✅') ? C.green : C.red, marginBottom: '8px' }}>{buildMsg}</div>}
-
         <button
           onClick={handleBuild}
           disabled={building}

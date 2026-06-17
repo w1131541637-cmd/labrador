@@ -285,36 +285,30 @@ export default function WarPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: C.bg, fontFamily: 'Arial, Helvetica, sans-serif', color: C.text, paddingBottom: '60px' }}>
 
-      {/* Header - mesma tonalidade do feed */}
+      {/* Header - estilo LABRADOR igual ao feed */}
       <div style={{
-        backgroundColor: C.bg,
-        borderBottom: `1px solid ${C.border}`,
-        padding: '14px 16px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
+        backgroundColor: '#4a3080',
+        borderBottom: '1px solid #5a4090',
+        padding: '16px',
+        textAlign: 'center',
         position: 'sticky',
         top: 0,
         zIndex: 10,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ 
-            fontSize: '18px', 
-            fontWeight: 'bold', 
-            color: C.text, 
-            letterSpacing: '1px' 
-          }}>
-            ⚔️ LABRADOR
-          </span>
-        </div>
-        <div style={{ 
-          fontSize: '11px', 
-          color: C.muted,
-          backgroundColor: C.dark,
-          padding: '4px 10px',
-          borderRadius: '12px'
+        <span style={{
+          fontSize: '20px',
+          fontWeight: 'bold',
+          color: '#fff',
+          letterSpacing: '2px'
         }}>
-          {myWars.length + worldWars.length} guerras
+          ⚔️ LABRADOR
+        </span>
+        <div style={{
+          fontSize: '11px',
+          color: '#aaa',
+          marginTop: '2px'
+        }}>
+          {myWars.length + worldWars.length} guerras ativas
         </div>
       </div>
 
@@ -322,9 +316,13 @@ export default function WarPage() {
       <div style={{
         backgroundColor: myWars.length === 0 ? '#1a3a1a' : '#3a1a1a',
         border: `1px solid ${myWars.length === 0 ? '#2d6a2d' : '#6a2d2d'}`,
-        margin: '0', padding: '10px 12px',
-        fontSize: '13px', color: myWars.length === 0 ? '#6fcf6f' : '#cf6f6f',
-        display: 'flex', alignItems: 'center', gap: '8px',
+        margin: '0',
+        padding: '10px 12px',
+        fontSize: '13px',
+        color: myWars.length === 0 ? '#6fcf6f' : '#cf6f6f',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px'
       }}>
         {myWars.length === 0 ? '✅ Sem guerras ativas no seu estado!' : `⚔️ ${myWars.length} guerra(s) ativa(s) no seu estado!`}
       </div>
