@@ -6,21 +6,16 @@ import { supabase } from '@src/lib/supabaseClient';
 import Image from 'next/image';
 
 const COUNTRIES = [
-  "África do Sul", "Angola", "Argélia", "Botsuana", "Camarões", "Chade",
-  "Congo-Brazzaville", "Egito", "Etiópia", "Gabão", "Gana", "Guiné", "Líbia",
-  "Madagascar", "Mali", "Marrocos", "Mauritânia", "Moçambique", "Namíbia",
-  "Níger", "Nigéria", "Quênia", "República Centro-Africana",
-  "República Democrática do Congo", "Senegal", "Somália", "Sudão", "Sudão do Sul",
-  "Tanzânia", "Uganda", "Zâmbia", "Zimbábue", "Canadá", "Cuba", "El Salvador",
-  "Estados Unidos", "México", "Argentina", "Bolívia", "Brasil", "Chile",
-  "Colômbia", "Equador", "Guiana", "Paraguai", "Peru", "Suriname", "Uruguai",
-  "Venezuela", "Afeganistão", "Arábia Saudita", "Cazaquistão", "China",
-  "Coreia do Norte", "Coreia do Sul", "Índia", "Indonésia", "Irã", "Iraque",
-  "Israel", "Japão", "Palestina", "Paquistão", "Síria", "Tailândia", "Taiwan",
-  "Turquia", "Vietnã", "Alemanha", "Áustria", "Bielorrússia", "Dinamarca",
-  "Espanha", "Finlândia", "França", "Hungria", "Irlanda", "Itália", "Noruega",
-  "Polônia", "Portugal", "Reino Unido", "Romênia", "Rússia", "Sérvia", "Suécia",
-  "Ucrânia", "Austrália"
+  "África Austral", "África Central Ocidental", "Alemanha", "América Central", "Andono", "Angola", "Argélia", "Ásia Turcomena",
+  "Áustria", "Balcãs Ocidentais", "Bálticos", "Benelux", "Bielorrússia", "Brasil", "Bulgária", "Canadá", "Caribe",
+  "Cáucaso", "Chifre da África", "Chile", "China", "Colômbia", "Comunidade Australiana", "Coreia", "Costa do Ouro",
+  "Costa Ocidental", "Eritreia", "Espanha", "Estados Unidos", "Filipinas", "Finlândia", "França", "Grande Paquistão",
+  "Grandes Lagos", "Grécia-Chipre", "Guianas", "Golfo da Guiné", "Himalaia", "Hungria", "Ilíria", "Império Dinarmaques",
+  "Índia", "Índico Insular", "Indochina", "Insulíndia", "Irã", "Iraque", "Irlanda", "Israel-Palestina", "Itália",
+  "Japão", "Jordânia", "Levante", "Magrebe Oriental", "Malaio", "Marrocos", "Mauritânia", "Mercosul", "México",
+  "Mongólia", "Moçambique-Malawi", "Myanmar", "Noruega", "Nova Zelândia", "Península Arábica", "Polônia", "Portugal",
+  "RD Congo", "Reino Unido da Grã-Bretanha e Irlanda do Norte", "Rodésia", "Romênia", "Rússia", "Sahel", "Sérvia",
+  "Suécia", "Suíça", "Tailândia", "Tchecoslováquia", "Turquia-Azerbaijão", "Ucrânia", "Vale do Nilo", "Venezuela"
 ];
 
 export default function LoginPage() {
