@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@src/lib/supabaseClient';
 import Header from '@src/components/layout/Hearder';
 import BottomNav from '@src/components/layout/BottomNav';
-import SidebarMenu from '@src/components/layout/SidebarMenu';
 
 /* ─── Tipos ──────────────────────────────────────────────────────────────── */
 interface CountryData {
@@ -325,7 +324,6 @@ export default function StatePage() {
     <div style={{ minHeight: '100vh', backgroundColor: C.bg, fontFamily: 'Arial, Helvetica, sans-serif', color: C.text, paddingBottom: '60px' }}>
 
       <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} menuOpen={sidebarOpen} />
-      <SidebarMenu isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div style={{ paddingTop: '48px' }}>
 

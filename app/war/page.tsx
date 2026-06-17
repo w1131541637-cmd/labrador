@@ -285,9 +285,37 @@ export default function WarPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: C.bg, fontFamily: 'Arial, Helvetica, sans-serif', color: C.text, paddingBottom: '60px' }}>
 
-      {/* Header */}
-      <div style={{ backgroundColor: '#4a3080', borderBottom: `1px solid #5a4090`, padding: '12px', textAlign: 'center', position: 'sticky', top: 0, zIndex: 10 }}>
-        <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#fff', letterSpacing: '2px' }}>LABRADOR</span>
+      {/* Header - mesma tonalidade do feed */}
+      <div style={{
+        backgroundColor: C.bg,
+        borderBottom: `1px solid ${C.border}`,
+        padding: '14px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ 
+            fontSize: '18px', 
+            fontWeight: 'bold', 
+            color: C.text, 
+            letterSpacing: '1px' 
+          }}>
+            ⚔️ LABRADOR
+          </span>
+        </div>
+        <div style={{ 
+          fontSize: '11px', 
+          color: C.muted,
+          backgroundColor: C.dark,
+          padding: '4px 10px',
+          borderRadius: '12px'
+        }}>
+          {myWars.length + worldWars.length} guerras
+        </div>
       </div>
 
       {/* Status guerras do meu estado */}

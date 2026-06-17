@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@src/lib/supabaseClient';
 import Header from '@src/components/layout/Hearder';
 import BottomNav from '@src/components/layout/BottomNav';
-import SidebarMenu from '@src/components/layout/SidebarMenu';
 
 interface FeedPost {
   id: string;
@@ -101,9 +100,6 @@ export default function FeedPage() {
     <div className="min-h-screen bg-gray-900 text-white">
       {/* Header com LABRADOR e menu sanduíche */}
       <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} menuOpen={sidebarOpen} />
-
-      {/* Sidebar Menu (três pontinhos) */}
-      <SidebarMenu isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="pt-12 pb-20">
         <main className="flex-1 w-full overflow-x-hidden">

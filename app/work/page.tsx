@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@src/lib/supabaseClient';
+import Header from '../../src/components/layout/Hearder';
 import BottomNav from '@src/components/layout/BottomNav';
 
 /* ─── Tipos ──────────────────────────────────────────────────────────────── */
