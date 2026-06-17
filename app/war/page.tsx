@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@src/lib/supabaseClient';
 import BottomNav from '@src/components/layout/BottomNav';
+import Hearder from '@src/components/layout/Hearder';
 
 /* ─── Tipos ──────────────────────────────────────────────────────────────── */
 interface War {
@@ -240,6 +241,7 @@ export default function WarPage() {
   const [worldWars, setWorldWars] = useState<War[]>([]);
   const [myCountryId, setMyCountryId] = useState('');
   const [loading, setLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -276,6 +278,10 @@ export default function WarPage() {
     router.push(`/war/${war.id}`);
   };
 
+  const handleMenuToggle = () => {
+    setMenuOpen(!menuOpen);
+  };
+
   if (loading) return (
     <div style={{ minHeight: '100vh', backgroundColor: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ color: C.blue, fontSize: '13px', letterSpacing: '2px' }}>CARREGANDO...</div>
@@ -285,44 +291,15 @@ export default function WarPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: C.bg, fontFamily: 'Arial, Helvetica, sans-serif', color: C.text, paddingBottom: '60px' }}>
 
-      {/* Header - estilo LABRADOR igual ao feed */}
-      <div style={{
-        backgroundColor: '#4a3080',
-        borderBottom: '1px solid #5a4090',
-        padding: '16px',
-        textAlign: 'center',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10,
-      }}>
-        <span style={{
-          fontSize: '20px',
-          fontWeight: 'bold',
-          color: '#fff',
-          letterSpacing: '2px'
-        }}>
-          ⚔️ LABRADOR
-        </span>
-        <div style={{
-          fontSize: '11px',
-          color: '#aaa',
-          marginTop: '2px'
-        }}>
-          {myWars.length + worldWars.length} guerras ativas
-        </div>
-      </div>
+      <Hearder onMenuToggle={handleMenuToggle} menuOpen={menuOpen} />
 
       {/* Status guerras do meu estado */}
       <div style={{
         backgroundColor: myWars.length === 0 ? '#1a3a1a' : '#3a1a1a',
         border: `1px solid ${myWars.length === 0 ? '#2d6a2d' : '#6a2d2d'}`,
-        margin: '0',
-        padding: '10px 12px',
-        fontSize: '13px',
-        color: myWars.length === 0 ? '#6fcf6f' : '#cf6f6f',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px'
+        margin: '0', padding: '10px 12px',
+        fontSize: '13px', color: myWars.length === 0 ? '#6fcf6f' : '#cf6f6f',
+        display: 'flex', alignItems: 'center', gap: '8px',
       }}>
         {myWars.length === 0 ? '✅ Sem guerras ativas no seu estado!' : `⚔️ ${myWars.length} guerra(s) ativa(s) no seu estado!`}
       </div>

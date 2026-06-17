@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@src/lib/supabaseClient';
 import BottomNav from '@src/components/layout/BottomNav';
+import Hearder from '@src/components/layout/Hearder';
 
 /* ─── Tipos ──────────────────────────────────────────────────────────────── */
 interface Region {
@@ -114,6 +115,7 @@ export default function WorkPage() {
   const [resources, setResources] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
 
   /* construção */
   const [selectedBuilding, setSelectedBuilding] = useState('');
@@ -188,6 +190,10 @@ export default function WorkPage() {
     setBuyingArea(false);
   };
 
+  const handleMenuToggle = () => {
+    setMenuOpen(!menuOpen);
+  };
+
   if (loading) return (
     <div style={{ minHeight: '100vh', backgroundColor: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ color: C.blue, fontSize: '13px', letterSpacing: '2px' }}>CARREGANDO...</div>
@@ -195,37 +201,11 @@ export default function WorkPage() {
   );
 
   const buildingInfo = selectedBuilding ? BUILDINGS[selectedBuilding] : null;
-  const isMineOrPlant = selectedBuilding && (selectedBuilding.includes('mine') || selectedBuilding.includes('well') || selectedBuilding.includes('farm') || selectedBuilding.includes('sawmill'));
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: C.bg, fontFamily: 'Arial, Helvetica, sans-serif', color: C.text, paddingBottom: '60px' }}>
 
-      {/* Header - estilo LABRADOR igual ao feed */}
-      <div style={{
-        backgroundColor: '#4a3080',
-        borderBottom: '1px solid #5a4090',
-        padding: '16px',
-        textAlign: 'center',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10,
-      }}>
-        <span style={{
-          fontSize: '20px',
-          fontWeight: 'bold',
-          color: '#fff',
-          letterSpacing: '2px'
-        }}>
-          🏗️ LABRADOR
-        </span>
-        <div style={{
-          fontSize: '11px',
-          color: '#aaa',
-          marginTop: '2px'
-        }}>
-          {regions.length} regiões
-        </div>
-      </div>
+      <Hearder onMenuToggle={handleMenuToggle} menuOpen={menuOpen} />
 
       {/* ── RECURSOS EM ESTOQUE ─────────────────────────────────── */}
       <SectionHeader>Recursos em Estoque</SectionHeader>
