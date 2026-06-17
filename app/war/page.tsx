@@ -2,239 +2,326 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../../src/lib/supabaseClient';
-import Header from '../../src/components/layout/Hearder';
-import BottomNav from '../../src/components/layout/BottomNav';
-import SidebarMenu from '../../src/components/layout/SidebarMenu';
+import { supabase } from '@src/lib/supabaseClient';
+import BottomNav from '@src/components/layout/BottomNav';
 
+/* ─── Tipos ──────────────────────────────────────────────────────────────── */
+interface War {
+  id: string;
+  attacker_country: string;
+  attacker_flag: string;
+  attacker_damage: number;
+  defender_country: string;
+  defender_flag: string;
+  defender_damage: number;
+  total_damage: number;
+  ends_at: string;
+  region_name: string;
+  biome: string;
+  relief: string;
+  is_my_war: boolean;
+}
+
+interface Training {
+  id: string;
+  unit_type: string;
+  started_at: string;
+  ends_at: string;
+  stars_before: number;
+}
+
+/* ─── Paleta RR ──────────────────────────────────────────────────────────── */
+const C = {
+  bg: '#393939', panel: '#2e2e2e', dark: '#252525', border: '#444',
+  blue: '#3c6ae0', green: '#54bb38', red: '#e05050', yellow: '#cacf36',
+  text: '#f1f1f1', sub: '#cccccc', muted: '#888888',
+};
+
+const UNIT_TYPES = ['Soldados', 'Tanques', 'Aeronaves', 'Navios', 'Submarinos', 'Mísseis', 'Helicópteros', 'Drones'];
+
+function SectionHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      backgroundColor: C.dark, borderBottom: `1px solid ${C.border}`,
+      borderTop: `1px solid ${C.border}`, padding: '7px 12px',
+      fontSize: '11px', color: C.muted, textTransform: 'uppercase', letterSpacing: '1px',
+    }}>▶ {children}</div>
+  );
+}
+
+function useCountdown(endsAt: string) {
+  const [timeLeft, setTimeLeft] = useState('');
+  useEffect(() => {
+    const calc = () => {
+      const diff = new Date(endsAt).getTime() - Date.now();
+      if (diff <= 0) { setTimeLeft('00:00:00'); return; }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setTimeLeft(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
+    };
+    calc();
+    const t = setInterval(calc, 1000);
+    return () => clearInterval(t);
+  }, [endsAt]);
+  return timeLeft;
+}
+
+function fmt(n: number) {
+  return n >= 1_000_000_000 ? (n / 1_000_000_000).toFixed(1) + 'B'
+    : n >= 1_000_000 ? (n / 1_000_000).toFixed(1) + 'M'
+    : n >= 1_000 ? (n / 1_000).toFixed(1) + 'K'
+    : String(n ?? 0);
+}
+
+/* ─── Card de guerra ─────────────────────────────────────────────────────── */
+function WarCard({ war, onFight }: { war: War; onFight: (war: War) => void }) {
+  const timeLeft = useCountdown(war.ends_at);
+  const total = (war.attacker_damage + war.defender_damage) || 1;
+  const attackerPct = Math.round((war.attacker_damage / total) * 100);
+  const defenderPct = 100 - attackerPct;
+
+  return (
+    <div style={{ backgroundColor: C.panel, borderBottom: `1px solid ${C.border}`, padding: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+
+        {/* Agressor */}
+        <div style={{ flex: 1, textAlign: 'center' }}>
+          <div style={{ width: '52px', height: '52px', borderRadius: '50%', overflow: 'hidden', border: `2px solid ${C.border}`, margin: '0 auto 4px' }}>
+            {war.attacker_flag
+              ? <img src={war.attacker_flag} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <div style={{ width: '100%', height: '100%', backgroundColor: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>🏳</div>}
+          </div>
+          <div style={{ fontSize: '11px', color: C.sub, fontWeight: 'bold' }}>{war.attacker_country}</div>
+          <div style={{ fontSize: '10px', color: C.muted }}>Danos: {fmt(war.attacker_damage)}</div>
+        </div>
+
+        {/* Centro */}
+        <div style={{ flex: 1.2, textAlign: 'center' }}>
+          <div style={{ fontSize: '10px', color: C.muted, marginBottom: '2px' }}>Danos:</div>
+          <div style={{ fontSize: '15px', fontWeight: 'bold', color: C.yellow, marginBottom: '6px' }}>
+            {(war.attacker_damage + war.defender_damage).toLocaleString()}
+          </div>
+
+          {/* Barra de dano */}
+          <div style={{ height: '12px', borderRadius: '2px', overflow: 'hidden', display: 'flex', marginBottom: '6px' }}>
+            <div style={{ width: `${attackerPct}%`, backgroundColor: C.red, transition: 'width 0.5s' }} />
+            <div style={{ width: `${defenderPct}%`, backgroundColor: C.blue, transition: 'width 0.5s' }} />
+          </div>
+
+          {/* Botão Lutar */}
+          <button
+            onClick={() => onFight(war)}
+            style={{
+              width: '100%', padding: '7px', marginBottom: '6px',
+              backgroundColor: C.red, border: 'none', borderRadius: '2px',
+              color: '#fff', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+            }}
+          >
+            ✊ Lutar
+          </button>
+
+          <div style={{ fontSize: '10px', color: C.muted }}>A guerra termina em:</div>
+          <div style={{ fontSize: '13px', color: C.text, fontWeight: 'bold' }}>{timeLeft}</div>
+
+          {war.biome && (
+            <div style={{ fontSize: '10px', color: C.muted, marginTop: '4px' }}>
+              🌿 {war.biome} · ⛰ {war.relief}
+            </div>
+          )}
+        </div>
+
+        {/* Defensor */}
+        <div style={{ flex: 1, textAlign: 'center' }}>
+          <div style={{ width: '52px', height: '52px', borderRadius: '50%', overflow: 'hidden', border: `2px solid ${C.border}`, margin: '0 auto 4px' }}>
+            {war.defender_flag
+              ? <img src={war.defender_flag} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <div style={{ width: '100%', height: '100%', backgroundColor: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>🏳</div>}
+          </div>
+          <div style={{ fontSize: '11px', color: C.sub, fontWeight: 'bold' }}>{war.defender_country}</div>
+          <div style={{ fontSize: '10px', color: C.muted }}>Danos: {fmt(war.defender_damage)}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Treinamento ────────────────────────────────────────────────────────── */
+function TrainingPanel({ myCountryId }: { myCountryId: string }) {
+  const [training, setTraining] = useState<Training | null>(null);
+  const [unitType, setUnitType] = useState('Soldados');
+  const [starting, setStarting] = useState(false);
+  const [msg, setMsg] = useState('');
+  const timeLeft = useCountdown(training?.ends_at ?? new Date(0).toISOString());
+
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase
+        .from('military_training')
+        .select('*')
+        .eq('country_id', myCountryId)
+        .gt('ends_at', new Date().toISOString())
+        .single();
+      if (data) setTraining(data as Training);
+    };
+    load();
+  }, [myCountryId]);
+
+  const startTraining = async () => {
+    setStarting(true); setMsg('');
+    const endsAt = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+    const { error } = await supabase.from('military_training').insert({
+      country_id: myCountryId,
+      unit_type: unitType,
+      started_at: new Date().toISOString(),
+      ends_at: endsAt,
+      stars_before: 0,
+    });
+    if (error) { setMsg('Erro: ' + error.message); }
+    else {
+      setTraining({ id: '', unit_type: unitType, started_at: new Date().toISOString(), ends_at: endsAt, stars_before: 0 });
+      setMsg('✅ Treinamento iniciado!');
+    }
+    setStarting(false);
+  };
+
+  const progress = training
+    ? Math.min(100, Math.round(((Date.now() - new Date(training.started_at).getTime()) / (24 * 3600 * 1000)) * 100))
+    : 0;
+
+  return (
+    <div style={{ backgroundColor: C.panel, padding: '12px', borderBottom: `1px solid ${C.border}` }}>
+      <div style={{ fontSize: '13px', fontWeight: 'bold', color: C.text, marginBottom: '8px' }}>🎖️ Treinamento Militar</div>
+
+      {training ? (
+        <>
+          <div style={{ fontSize: '12px', color: C.muted, marginBottom: '4px' }}>Unidade: <span style={{ color: C.blue }}>{training.unit_type}</span></div>
+          <div style={{ fontSize: '12px', color: C.muted, marginBottom: '8px' }}>Tempo restante: <span style={{ color: C.text, fontWeight: 'bold' }}>{timeLeft}</span></div>
+          <div style={{ fontSize: '11px', color: C.muted, marginBottom: '4px' }}>Progresso: {progress}%</div>
+          <div style={{ height: '10px', backgroundColor: '#1e1e1e', borderRadius: '2px', overflow: 'hidden', border: `1px solid ${C.border}` }}>
+            <div style={{ height: '100%', width: `${progress}%`, backgroundColor: C.green, transition: 'width 1s' }} />
+          </div>
+          <div style={{ fontSize: '11px', color: C.muted, marginTop: '6px' }}>Efeito: +0.5 ⭐ ao concluir</div>
+        </>
+      ) : (
+        <>
+          <div style={{ fontSize: '11px', color: C.muted, marginBottom: '8px' }}>Duração: 24h · Custo: 10 🥇 + 1.000 petróleo + $100K · Efeito: +0.5 ⭐</div>
+          <div style={{ marginBottom: '8px' }}>
+            <label style={{ fontSize: '11px', color: C.muted, display: 'block', marginBottom: '4px' }}>Unidade a treinar:</label>
+            <select
+              value={unitType}
+              onChange={(e) => setUnitType(e.target.value)}
+              style={{ width: '100%', padding: '8px', backgroundColor: '#1e1e1e', border: `1px solid ${C.border}`, color: C.text, fontSize: '13px', outline: 'none' }}
+            >
+              {UNIT_TYPES.map((u) => <option key={u} value={u}>{u}</option>)}
+            </select>
+          </div>
+          {msg && <div style={{ fontSize: '12px', color: msg.startsWith('✅') ? C.green : C.red, marginBottom: '8px' }}>{msg}</div>}
+          <button
+            onClick={startTraining}
+            disabled={starting}
+            style={{ width: '100%', padding: '10px', backgroundColor: C.blue, border: 'none', borderRadius: '2px', color: '#fff', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}
+          >
+            {starting ? 'Iniciando...' : 'INICIAR TREINAMENTO'}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   PÁGINA WAR
+════════════════════════════════════════════════════════════════════════════ */
 export default function WarPage() {
   const router = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [country, setCountry] = useState<any>(null);
-  const [guerra, setGuerra] = useState<any>(null);
+  const [myWars, setMyWars] = useState<War[]>([]);
+  const [worldWars, setWorldWars] = useState<War[]>([]);
+  const [myCountryId, setMyCountryId] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const { data: authData } = await supabase.auth.getSession();
-        if (!authData?.session) {
-          router.push('/');
-          return;
-        }
+    const load = async () => {
+      const { data: auth } = await supabase.auth.getSession();
+      if (!auth?.session) { router.push('/'); return; }
 
-        // Buscar país
-        const { data: countryData } = await supabase
-          .from('politica')
-          .select('*')
-          .eq('user_id', authData.session.user.id)
-          .single();
+      const { data: cp } = await supabase
+        .from('countries_politics')
+        .select('id, country_name')
+        .eq('user_id', auth.session.user.id)
+        .single();
 
-        if (!countryData) {
-          // ALTERAÇÃO 1: Para o loading se não encontrar o país
-          setLoading(false);
-          return;
-        }
-        setCountry(countryData);
+      if (cp) setMyCountryId(cp.id);
 
-        // Buscar guerra ativa
-        const { data: guerraData } = await supabase
-          .from('guerras')
-          .select('*')
-          .eq('atacante_id', countryData.id)
-          .eq('status', 'ativa')
-          .single();
+      const { data: wars } = await supabase
+        .from('wars')
+        .select('*')
+        .gt('ends_at', new Date().toISOString())
+        .order('ends_at', { ascending: true });
 
-        if (guerraData) setGuerra(guerraData);
-
-        setLoading(false);
-      } catch (err) {
-        console.error('Erro:', err);
-        setLoading(false);
+      if (wars && cp) {
+        const mine = wars.filter((w: any) => w.attacker_country === cp.country_name || w.defender_country === cp.country_name);
+        const world = wars.filter((w: any) => w.attacker_country !== cp.country_name && w.defender_country !== cp.country_name);
+        setMyWars(mine as War[]);
+        setWorldWars(world as War[]);
       }
-    };
 
-    loadData();
+      setLoading(false);
+    };
+    load();
   }, [router]);
 
-  const handleDeclareWar = async () => {
-    if (!country) return;
-
-    try {
-      // Aqui você escolheria um inimigo e região
-      // Por enquanto, apenas placeholder
-      alert('Declarar guerra será implementado');
-    } catch (err) {
-      console.error('Erro:', err);
-    }
+  const handleFight = (war: War) => {
+    router.push(`/war/${war.id}`);
   };
 
-  const handleAttack = async () => {
-    if (!guerra || !country) return;
-
-    try {
-      // Simular ataque
-      const novaDominacao = Math.min(guerra.dominacao_porcentagem + 5, 100);
-
-      const { error } = await supabase
-        .from('guerras')
-        .update({ dominacao_porcentagem: novaDominacao })
-        .eq('id', guerra.id);
-
-      if (!error) {
-        setGuerra({ ...guerra, dominacao_porcentagem: novaDominacao });
-      }
-    } catch (err) {
-      console.error('Erro ao atacar:', err);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  if (!country) {
-    // ALTERAÇÃO 2: Feedback visual se o país não for encontrado
-    return (
-      <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center text-red-400 p-4 text-center">
-        <p className="text-xl font-bold mb-2">País não encontrado</p>
-        <p className="text-gray-400">Você precisa criar um país ou vincular seu usuário a um para acessar esta aba.</p>
-        <button 
-          onClick={() => router.push('/home')}
-          className="mt-4 px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-700"
-        >
-          Voltar para Home
-        </button>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div style={{ minHeight: '100vh', backgroundColor: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ color: C.blue, fontSize: '13px', letterSpacing: '2px' }}>CARREGANDO...</div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} menuOpen={sidebarOpen} />
+    <div style={{ minHeight: '100vh', backgroundColor: C.bg, fontFamily: 'Arial, Helvetica, sans-serif', color: C.text, paddingBottom: '60px' }}>
 
-      <div className="flex pt-12 pb-20">
-        <SidebarMenu isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
-        <main className="flex-1 w-full overflow-x-hidden">
-          <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-            <h2 className="text-2xl font-bold">GUERRA</h2>
-
-            {!guerra ? (
-              // SEM GUERRA
-              <div className="space-y-6">
-                <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6 text-center">
-                  <p className="text-gray-400 mb-4">Você não está em guerra no momento</p>
-                  <button
-                    onClick={handleDeclareWar}
-                    className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded font-bold"
-                  >
-                    DECLARAR GUERRA
-                  </button>
-                </div>
-
-                {/* Treinamento Militar */}
-                <div className="bg-gray-800/50 border border-green-500/20 rounded-lg p-6">
-                  <h3 className="font-bold text-green-400 mb-4">TREINAMENTO MILITAR</h3>
-                  <button className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded font-bold">
-                    Iniciar Treinamento (+0.5⭐, 48h)
-                  </button>
-                </div>
-              </div>
-            ) : (
-              // EM GUERRA
-              <div className="bg-gray-800/50 border border-red-500/30 rounded-lg p-6">
-                <h3 className="text-lg font-bold text-red-400 mb-6 text-center">
-                  BRASIL vs ARGENTINA - GUERRA ATIVA
-                </h3>
-
-                <div className="grid grid-cols-3 gap-4 mb-6">
-                  {/* Atacante */}
-                  <div className="bg-red-900/30 border border-red-500/30 rounded p-4 text-center">
-                    <p className="text-sm text-gray-400">ATACANTE</p>
-                    <p className="text-xl font-bold text-white mb-2">🇧🇷</p>
-                    <p className="text-sm text-red-400">Dano Causado: 45%</p>
-                  </div>
-
-                  {/* Combate */}
-                  <div className="bg-gray-700/30 border border-gray-600 rounded p-4">
-                    <p className="text-sm text-gray-400 text-center mb-2">DOMINAÇÃO</p>
-                    <p className="text-2xl font-bold text-center text-yellow-400 mb-3">
-                      {guerra.dominacao_porcentagem}%
-                    </p>
-
-                    <div className="bg-gray-600 h-4 rounded-full overflow-hidden mb-3">
-                      <div
-                        className="h-full bg-gradient-to-r from-red-600 to-yellow-500 transition-all"
-                        style={{ width: `${guerra.dominacao_porcentagem}%` }}
-                      ></div>
-                    </div>
-
-                    <div className="text-xs text-gray-400 space-y-1 mb-3">
-                      <p>📍 Região: São Paulo</p>
-                      <p>🌍 Bioma: Tropical</p>
-                      <p>⛰️ Relevo: Montanhoso (-15% ataque, +20% defesa)</p>
-                      <p>⏱️ Tempo: 3:45</p>
-                    </div>
-
-                    {/* Botões de Combate */}
-                    <div className="space-y-2">
-                      <button
-                        onClick={handleAttack}
-                        className="w-full px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded font-bold"
-                      >
-                        ⚔️ LUTAR
-                      </button>
-                      <button className="w-full px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm rounded font-bold">
-                        💣 SABOTAGEM
-                      </button>
-                      <button className="w-full px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white text-sm rounded font-bold">
-                        🏗️ DESTRUIR INFRA
-                      </button>
-                      <button className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded font-bold">
-                        ⏸️ CESSAR FOGO
-                      </button>
-                      <button className="w-full px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded font-bold">
-                        ☮️ PAZ
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Defensor */}
-                  <div className="bg-blue-900/30 border border-blue-500/30 rounded p-4 text-center">
-                    <p className="text-sm text-gray-400">DEFENSOR</p>
-                    <p className="text-xl font-bold text-white mb-2">🇦🇷</p>
-                    <p className="text-sm text-blue-400">Dano Sofrido: 30%</p>
-                  </div>
-                </div>
-
-                {/* Unidades Militares */}
-                <div className="bg-gray-700/30 rounded p-4">
-                  <h4 className="font-bold text-gray-300 mb-3">UNIDADES MILITARES</h4>
-                  <div className="grid grid-cols-3 gap-2 text-sm">
-                    <div className="bg-gray-600/30 rounded p-2">
-                      <p className="text-gray-400">Soldados</p>
-                      <p className="font-bold text-white">5.000</p>
-                    </div>
-                    <div className="bg-gray-600/30 rounded p-2">
-                      <p className="text-gray-400">Tanques</p>
-                      <p className="font-bold text-white">150</p>
-                    </div>
-                    <div className="bg-gray-600/30 rounded p-2">
-                      <p className="text-gray-400">Aviões</p>
-                      <p className="font-bold text-white">80</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </main>
+      {/* Header */}
+      <div style={{ backgroundColor: '#4a3080', borderBottom: `1px solid #5a4090`, padding: '12px', textAlign: 'center', position: 'sticky', top: 0, zIndex: 10 }}>
+        <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#fff', letterSpacing: '2px' }}>LABRADOR</span>
       </div>
+
+      {/* Status guerras do meu estado */}
+      <div style={{
+        backgroundColor: myWars.length === 0 ? '#1a3a1a' : '#3a1a1a',
+        border: `1px solid ${myWars.length === 0 ? '#2d6a2d' : '#6a2d2d'}`,
+        margin: '0', padding: '10px 12px',
+        fontSize: '13px', color: myWars.length === 0 ? '#6fcf6f' : '#cf6f6f',
+        display: 'flex', alignItems: 'center', gap: '8px',
+      }}>
+        {myWars.length === 0 ? '✅ Sem guerras ativas no seu estado!' : `⚔️ ${myWars.length} guerra(s) ativa(s) no seu estado!`}
+      </div>
+
+      {/* Guerras do meu país */}
+      {myWars.length > 0 && (
+        <>
+          <SectionHeader>Suas Guerras ({myWars.length})</SectionHeader>
+          {myWars.map((w) => <WarCard key={w.id} war={w} onFight={handleFight} />)}
+        </>
+      )}
+
+      {/* Treinamento */}
+      <SectionHeader>Treinamento Militar</SectionHeader>
+      {myCountryId && <TrainingPanel myCountryId={myCountryId} />}
+
+      {/* Guerras do mundo */}
+      <SectionHeader>Todas as guerras do mundo ({worldWars.length})</SectionHeader>
+      {worldWars.length === 0 ? (
+        <div style={{ backgroundColor: C.panel, padding: '16px', textAlign: 'center', fontSize: '12px', color: C.muted }}>
+          Nenhuma guerra ativa no mundo.
+        </div>
+      ) : (
+        worldWars.map((w) => <WarCard key={w.id} war={w} onFight={handleFight} />)
+      )}
 
       <BottomNav />
     </div>
