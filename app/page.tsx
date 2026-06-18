@@ -6,13 +6,13 @@ import { supabase } from '@src/lib/supabaseClient';
 import Image from 'next/image';
 
 const COUNTRIES = [
-  "África Austral", "África Central Ocidental", "Alemanha", "América Central", "Andono", "Angola", "Argélia", "Ásia Turcomena",
+  "África Austral", "África Central Ocidental", "Alemanha", "América Central", "Andino", "Angola", "Argélia", "Ásia Turcomena",
   "Áustria", "Balcãs Ocidentais", "Bálticos", "Benelux", "Bielorrússia", "Brasil", "Bulgária", "Canadá", "Caribe",
   "Cáucaso", "Chifre da África", "Chile", "China", "Colômbia", "Comunidade Australiana", "Coreia", "Costa do Ouro",
-  "Costa Ocidental", "Eritreia", "Espanha", "Estados Unidos", "Filipinas", "Finlândia", "França", "Grande Paquistão",
-  "Grandes Lagos", "Grécia-Chipre", "Guianas", "Golfo da Guiné", "Himalaia", "Hungria", "Ilíria", "Império Dinarmaques",
-  "Índia", "Índico Insular", "Indochina", "Insulíndia", "Irã", "Iraque", "Irlanda", "Israel-Palestina", "Itália",
-  "Japão", "Jordânia", "Levante", "Magrebe Oriental", "Malaio", "Marrocos", "Mauritânia", "Mercosul", "México",
+  "Costa Ocidental", "Eritreia", "Espanha", "Estados Unidos", "Filipinas", "Finlândia", "França", "Reino Durrani",
+  "Grande Lagos", "Grécia-Chipre", "Guianas", "Golfo da Guiné", "Himalaia", "Hungria", "Ilíria", "Império Dinarmaques",
+  "Índia", "Índico Insular", "Indochina", "Insulíndia", "Irã", "Iraque", "Irlanda", "Israel", "Itália",
+  "Japão", "Jordânia", "Levante Sirio", "Magrebe Oriental", "Malaio", "Marrocos", "Mauritânia", "Mercosul", "México",
   "Mongólia", "Moçambique-Malawi", "Myanmar", "Noruega", "Nova Zelândia", "Península Arábica", "Polônia", "Portugal",
   "RD Congo", "Reino Unido da Grã-Bretanha e Irlanda do Norte", "Rodésia", "Romênia", "Rússia", "Sahel", "Sérvia",
   "Suécia", "Suíça", "Tailândia", "Tchecoslováquia", "Turquia-Azerbaijão", "Ucrânia", "Vale do Nilo", "Venezuela"
