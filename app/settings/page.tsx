@@ -59,34 +59,78 @@ export default function SettingsPage() {
 
   const [form, setForm] = useState({
     email: '', newPassword: '', confirmPassword: '',
-    country_name: '', capital: '', leader_name: '', motto: '',
+    country_name: '', capital_city: '', head_state: '', motto: '',
     leader_title: '', state_structure: '', religion: '', currency: '', language: '',
-    flag_url: '', leader_photo_url: '',
-    banner_urls: Array(13).fill(''),
+    flag_url: '', flag_emoji: '', leader_photo_url: '',
+    banner_urls: Array(9).fill(''), // users table has 9 banners
   });
 
   useEffect(() => {
     const load = async () => {
-      const { data: auth } = await supabase.auth.getSession();
-      if (!auth?.session) { router.push('/'); return; }
-      setUid(auth.session.user.id);
-      setForm(f => ({ ...f, email: auth.session!.user.email || '' }));
+      try {
+        const { data: auth, error: authError } = await supabase.auth.getSession();
+        if (authError || !auth?.session) { 
+          router.push('/'); 
+          return; 
+        }
+        
+        const userId = auth.session.user.id;
+        setUid(userId);
+        setForm(f => ({ ...f, email: auth.session!.user.email || '' }));
 
-      const { data: cp } = await supabase.from('countries_politics').select('*').eq('user_id', auth.session.user.id).single();
-      if (cp) setForm(f => ({
-        ...f,
-        country_name: cp.country_name || '',
-        capital: cp.capital || '',
-        leader_name: cp.head_of_state || '',
-        motto: cp.motto || '',
-        leader_title: cp.leader_title || '',
-        state_structure: cp.state_structure || '',
-        religion: cp.religion || '',
-        currency: cp.currency || '',
-        flag_url: cp.flag_url || '',
-        leader_photo_url: cp.leader_photo_url || '',
-        banner_urls: cp.banner_urls || Array(13).fill(''),
-      }));
+        // Busca dados da tabela politics
+        const { data: politicsData, error: politicsError } = await supabase
+          .from('politics')
+          .select('*')
+          .eq('user_id', userId)
+          .single();
+
+        if (politicsError) {
+          console.error('Erro ao buscar politics:', politicsError);
+        } else if (politicsData) {
+          setForm(f => ({
+            ...f,
+            country_name: politicsData.country_name || '',
+            capital_city: politicsData.capital_city || '',
+            head_state: politicsData.head_state || '',
+            motto: politicsData.motto || '',
+            leader_title: politicsData.leader_title || '',
+            state_structure: politicsData.state_structure || '',
+            religion: politicsData.religion || '',
+            currency: politicsData.currency || '',
+            flag_url: politicsData.flag_url || '',
+            flag_emoji: politicsData.flag_emoji || '',
+            leader_photo_url: politicsData.leader_photo_url || '',
+          }));
+        }
+
+        // Busca banners da tabela users
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('banner1_url, banner2_url, banner3_url, banner4_url, banner5_url, banner6_url, banner7_url, banner8_url, banner9_url')
+          .eq('user_id', userId)
+          .single();
+
+        if (userError) {
+          console.error('Erro ao buscar users:', userError);
+        } else if (userData) {
+          const banners = [
+            userData.banner1_url, userData.banner2_url, userData.banner3_url,
+            userData.banner4_url, userData.banner5_url, userData.banner6_url,
+            userData.banner7_url, userData.banner8_url, userData.banner9_url
+          ].filter(url => url !== undefined && url !== null);
+          
+          // Preenche o array com os banners existentes
+          const bannerArray = Array(9).fill('');
+          banners.forEach((url, index) => {
+            if (index < 9) bannerArray[index] = url;
+          });
+          
+          setForm(f => ({ ...f, banner_urls: bannerArray }));
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+      }
     };
     load();
   }, [router]);
@@ -98,56 +142,116 @@ export default function SettingsPage() {
 
   const saveField = async (key: string, fields: Record<string, any>) => {
     setSaving(key);
-    const { error } = await supabase.from('countries_politics').update(fields).eq('user_id', uid);
-    setSaving(null);
-    setMsg1(key, error ? '❌ ' + error.message : '✅ Salvo!');
+    try {
+      const { error } = await supabase
+        .from('politics')
+        .update(fields)
+        .eq('user_id', uid);
+      
+      setSaving(null);
+      setMsg1(key, error ? '❌ ' + error.message : '✅ Salvo!');
+    } catch (error) {
+      setSaving(null);
+      setMsg1(key, '❌ Erro ao salvar');
+    }
   };
 
   const changeEmail = async () => {
     setSaving('email');
-    const { error } = await supabase.auth.updateUser({ email: form.email });
-    setSaving(null);
-    setMsg1('email', error ? '❌ ' + error.message : '✅ Email atualizado! Confirme no novo email.');
+    try {
+      const { error } = await supabase.auth.updateUser({ email: form.email });
+      setSaving(null);
+      setMsg1('email', error ? '❌ ' + error.message : '✅ Email atualizado! Confirme no novo email.');
+    } catch (error) {
+      setSaving(null);
+      setMsg1('email', '❌ Erro ao atualizar email');
+    }
   };
 
   const changePassword = async () => {
-    if (form.newPassword !== form.confirmPassword) { setMsg1('password', '❌ Senhas não coincidem.'); return; }
-    if (form.newPassword.length < 6) { setMsg1('password', '❌ Senha deve ter ao menos 6 caracteres.'); return; }
+    if (form.newPassword !== form.confirmPassword) { 
+      setMsg1('password', '❌ Senhas não coincidem.'); 
+      return; 
+    }
+    if (form.newPassword.length < 6) { 
+      setMsg1('password', '❌ Senha deve ter ao menos 6 caracteres.'); 
+      return; 
+    }
     setSaving('password');
-    const { error } = await supabase.auth.updateUser({ password: form.newPassword });
-    setSaving(null);
-    setMsg1('password', error ? '❌ ' + error.message : '✅ Senha alterada!');
-    setForm(f => ({ ...f, newPassword: '', confirmPassword: '' }));
+    try {
+      const { error } = await supabase.auth.updateUser({ password: form.newPassword });
+      setSaving(null);
+      setMsg1('password', error ? '❌ ' + error.message : '✅ Senha alterada!');
+      setForm(f => ({ ...f, newPassword: '', confirmPassword: '' }));
+    } catch (error) {
+      setSaving(null);
+      setMsg1('password', '❌ Erro ao alterar senha');
+    }
   };
 
   const uploadFile = async (file: File, bucket: string, path: string): Promise<string | null> => {
-    const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true });
-    if (error) return null;
-    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-    return data.publicUrl;
+    try {
+      const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true });
+      if (error) {
+        console.error('Erro no upload:', error);
+        return null;
+      }
+      const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Erro no upload:', error);
+      return null;
+    }
   };
 
   const handleUpload = async (key: string, file: File, bannerIndex?: number) => {
     setUploading(key);
-    const ext = file.name.split('.').pop();
-    const path = `${uid}/${key}_${bannerIndex ?? ''}.${ext}`;
-    const url = await uploadFile(file, 'country-media', path);
-    if (url) {
-      if (key === 'banner' && bannerIndex !== undefined) {
-        const newBanners = [...form.banner_urls];
-        newBanners[bannerIndex] = url;
-        setForm(f => ({ ...f, banner_urls: newBanners }));
-        await supabase.from('countries_politics').update({ banner_urls: newBanners }).eq('user_id', uid);
-        setMsg1(`banner_${bannerIndex}`, '✅ Banner salvo!');
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `${uid}/${key}_${bannerIndex ?? ''}.${ext}`;
+      const url = await uploadFile(file, 'country-media', path);
+      
+      if (url) {
+        if (key === 'banner' && bannerIndex !== undefined) {
+          const newBanners = [...form.banner_urls];
+          newBanners[bannerIndex] = url;
+          setForm(f => ({ ...f, banner_urls: newBanners }));
+          
+          // Atualiza o banner específico na tabela users
+          const bannerField = `banner${bannerIndex + 1}_url`;
+          const { error } = await supabase
+            .from('users')
+            .update({ [bannerField]: url })
+            .eq('user_id', uid);
+          
+          if (error) {
+            setMsg1(`banner_${bannerIndex}`, '❌ ' + error.message);
+          } else {
+            setMsg1(`banner_${bannerIndex}`, '✅ Banner salvo!');
+          }
+        } else {
+          const field = key === 'flag' ? 'flag_url' : 'leader_photo_url';
+          setForm(f => ({ ...f, [field]: url }));
+          
+          const { error } = await supabase
+            .from('politics')
+            .update({ [field]: url })
+            .eq('user_id', uid);
+          
+          if (error) {
+            setMsg1(key, '❌ ' + error.message);
+          } else {
+            setMsg1(key, '✅ Imagem salva!');
+          }
+        }
       } else {
-        setForm(f => ({ ...f, [key === 'flag' ? 'flag_url' : 'leader_photo_url']: url }));
-        await supabase.from('countries_politics').update({ [key === 'flag' ? 'flag_url' : 'leader_photo_url']: url }).eq('user_id', uid);
-        setMsg1(key, '✅ Imagem salva!');
+        setMsg1(key, '❌ Erro no upload.');
       }
-    } else {
+    } catch (error) {
       setMsg1(key, '❌ Erro no upload.');
+    } finally {
+      setUploading(null);
     }
-    setUploading(null);
   };
 
   const UploadBtn = ({ label, fieldKey, bannerIndex }: { label: string; fieldKey: string; bannerIndex?: number }) => {
@@ -155,8 +259,22 @@ export default function SettingsPage() {
     const msgKey = bannerIndex !== undefined ? `banner_${bannerIndex}` : fieldKey;
     return (
       <div>
-        <input ref={ref} type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(fieldKey, f, bannerIndex); e.target.value = ''; }} />
-        <button onClick={() => ref.current?.click()} disabled={uploading === fieldKey} style={{ padding: '8px 16px', backgroundColor: C.blue, border: 'none', borderRadius: '2px', color: '#fff', fontSize: '12px', cursor: 'pointer' }}>
+        <input 
+          ref={ref} 
+          type="file" 
+          accept="image/*" 
+          style={{ display: 'none' }} 
+          onChange={(e) => { 
+            const f = e.target.files?.[0]; 
+            if (f) handleUpload(fieldKey, f, bannerIndex); 
+            e.target.value = ''; 
+          }} 
+        />
+        <button 
+          onClick={() => ref.current?.click()} 
+          disabled={uploading === fieldKey} 
+          style={{ padding: '8px 16px', backgroundColor: C.blue, border: 'none', borderRadius: '2px', color: '#fff', fontSize: '12px', cursor: 'pointer' }}
+        >
           {uploading === fieldKey ? 'Enviando...' : label}
         </button>
         {msg[msgKey] && <div style={{ fontSize: '11px', color: msg[msgKey].startsWith('✅') ? C.green : C.red, marginTop: '4px' }}>{msg[msgKey]}</div>}
@@ -200,15 +318,16 @@ export default function SettingsPage() {
       <div style={{ backgroundColor: C.panel }}>
         <Field label="Bandeira do País">
           {form.flag_url && <img src={form.flag_url} alt="flag" style={{ width: '80px', height: '50px', objectFit: 'cover', border: `1px solid ${C.border}`, marginBottom: '8px' }} />}
+          <div style={{ fontSize: '11px', color: C.muted, marginBottom: '4px' }}>Emoji da bandeira: {form.flag_emoji || '🏳'}</div>
           <UploadBtn label="📤 Upload Bandeira" fieldKey="flag" />
         </Field>
         <Field label="Foto do Líder">
           {form.leader_photo_url && <img src={form.leader_photo_url} alt="leader" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '50%', border: `1px solid ${C.border}`, marginBottom: '8px' }} />}
           <UploadBtn label="📤 Upload Foto do Líder" fieldKey="leader_photo" />
         </Field>
-        <Field label="13 Banners (Carrossel)">
+        <Field label="9 Banners (Carrossel)">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {Array.from({ length: 13 }, (_, i) => (
+            {Array.from({ length: 9 }, (_, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span style={{ fontSize: '11px', color: C.muted, width: '60px', flexShrink: 0 }}>Banner {i + 1}</span>
                 {form.banner_urls[i] && <img src={form.banner_urls[i]} alt="" style={{ width: '60px', height: '36px', objectFit: 'cover', border: `1px solid ${C.border}` }} />}
@@ -223,14 +342,14 @@ export default function SettingsPage() {
       <SectionHeader>Informações do País</SectionHeader>
       <div style={{ backgroundColor: C.panel }}>
         {[
-          { label: 'Nome do País', key: 'country_name', dbKey: 'country_name' },
-          { label: 'Capital', key: 'capital', dbKey: 'capital' },
-          { label: 'Nome do Líder', key: 'leader_name', dbKey: 'head_of_state' },
-          { label: 'Lema do País', key: 'motto', dbKey: 'motto' },
-        ].map(({ label, key, dbKey }) => (
+          { label: 'Nome do País', key: 'country_name' },
+          { label: 'Capital', key: 'capital_city' },
+          { label: 'Nome do Líder', key: 'head_state' },
+          { label: 'Lema do País', key: 'motto' },
+        ].map(({ label, key }) => (
           <Field key={key} label={label}>
             <input value={(form as any)[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} style={inputStyle} placeholder={label} />
-            <SaveBtn onClick={() => saveField(key, { [dbKey]: (form as any)[key] })} saving={saving === key} />
+            <SaveBtn onClick={() => saveField(key, { [key]: (form as any)[key] })} saving={saving === key} />
             {msg[key] && <div style={{ fontSize: '11px', color: C.green, marginTop: '4px' }}>{msg[key]}</div>}
           </Field>
         ))}
